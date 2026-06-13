@@ -1,0 +1,6 @@
+flask
+flask-cors
+azure-ai-projects>=2.0.0
+azure-identity
+openai
+python-dotenv

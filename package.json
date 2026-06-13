@@ -1,0 +1,14 @@
+{
+  "name": "buildpath-agent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BuildPath — agent-generated project roadmaps on an animated timeline.",
+  "scripts": {
+    "install:backend": "python3 -m pip install -r backend/requirements.txt",
+    "install:frontend": "npm install --prefix frontend",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "dev:backend": "python3 backend/app.py",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend"
+  }
+}
