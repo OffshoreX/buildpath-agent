@@ -384,14 +384,11 @@ export default function OnboardingChat({ onComplete }) {
               {(q.type === 'text' || q.type === 'textarea') && (
                 <textarea
                   id={`form-${q.id}`}
-                  className="chat-input chat-textarea"
-                  rows={q.type === 'textarea' ? 3 : 1}
+                  className="chat-input form-input"
+                  rows={q.type === 'textarea' ? 3 : 2}
                   placeholder={q.placeholder || ''}
                   value={typeof answers[q.id] === 'string' ? answers[q.id] : ''}
-                  onChange={(e) => {
-                    setFormAnswer(q.id, e.target.value)
-                    autoGrow(e.target)
-                  }}
+                  onChange={(e) => setFormAnswer(q.id, e.target.value)}
                 />
               )}
               {q.type === 'select' && (

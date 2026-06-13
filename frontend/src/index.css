@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap');
 
 /* ===========================================================================
    BuildPath design system — Patch's bold bordered architecture × Chronicle's
@@ -363,6 +363,16 @@ kbd {
 
 .onboarding-form .btn-generate {
   margin-top: var(--spacing-8);
+}
+
+/* Form-mode fields fill the column and hold their height — no auto-shrink. */
+.form-input {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .onboarding-counter {
@@ -899,6 +909,93 @@ kbd {
   gap: var(--spacing-8);
 }
 
+/* Export dropdown */
+.export-menu {
+  position: relative;
+}
+
+.export-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-4);
+  background: var(--color-surface-raised);
+  border: var(--border-bright);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.export-option:hover {
+  color: var(--color-text-primary);
+  background: var(--color-electric-dim);
+}
+
+.export-ico {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  width: 22px;
+  text-align: center;
+  color: var(--color-electric);
+}
+
+/* Foundry IQ source citations on a phase card */
+.sources-block {
+  margin-top: var(--spacing-16);
+}
+
+.source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-8);
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-electric);
+  background: var(--color-electric-dim);
+  border: 1px solid rgba(212, 162, 76, 0.4);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-decoration: none;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.source-chip:hover {
+  background: rgba(212, 162, 76, 0.2);
+  border-color: var(--color-electric);
+}
+
+.ext-link-icon {
+  flex: none;
+  opacity: 0.8;
+}
+
 .project-summary {
   max-width: 720px;
   margin-top: var(--spacing-16);
@@ -1148,8 +1245,102 @@ kbd {
 
 /* ---- Serpentine timeline (desktop S-curve, mobile left rail) ------------- */
 
+/* Drafting-table backdrop: fixed amber graph-paper grid + edge vignette. */
+.roadmap-page {
+  position: relative;
+  z-index: 0;
+}
+
+.blueprint-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(212, 162, 76, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 162, 76, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.blueprint-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.3) 100%);
+}
+
 .serpentine {
   position: relative;
+  overflow-x: clip; /* big tool diagrams bleed wide; clip so no h-scroll */
+}
+
+/* The grid "develops" amber near completed nodes (background-image set inline). */
+.blueprint-develop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Tool diagrams sit in the empty half opposite each card, behind it. */
+.serp-tool {
+  position: absolute;
+  top: 0;
+  bottom: 80px; /* matches the row's padding-bottom -> centers on the card */
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  pointer-events: none;
+  container-type: size; /* lets the label scale to the card height, like the figure */
+}
+
+.serp-row:last-child .serp-tool {
+  bottom: 0;
+}
+
+.serp-row-left .serp-tool {
+  left: 50%;
+  right: 0;
+}
+
+.serp-row-right .serp-tool {
+  left: 0;
+  right: 50%;
+}
+
+.blueprint-tool {
+  /* Sized to the card's height so tall cards get large diagrams and collapsed
+     rows stay small; capped at the widest that fits the empty half. */
+  height: 90%;
+  max-height: 440px;
+  width: auto;
+  aspect-ratio: 1 / 1;
+  color: rgba(212, 162, 76, 0.08);
+  transform: rotate(var(--rot, 0deg));
+}
+
+.blueprint-fig {
+  /* Chakra Petch: squared, industrial, engineering-label feel (scoped here
+     only; falls back to the system mono). */
+  font-family: 'Chakra Petch', var(--font-mono);
+  /* Scales with the card height (cqh) so the caption tracks its figure:
+     small under collapsed phases, large when the phase is open. */
+  font-size: clamp(12px, 5.5cqh, 24px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-align: center;
+  color: rgba(212, 162, 76, 0.7); /* the readable caption; the diagram stays faint */
+}
+
+@media (max-width: 768px) {
+  /* Cards go full width on mobile — no empty space — so hide the diagrams. */
+  .serp-tool {
+    display: none;
+  }
 }
 
 .timeline-svg {
@@ -1177,9 +1368,42 @@ kbd {
 }
 
 .phase-slot {
+  position: relative;
+  z-index: 1; /* above the tool diagram in the opposite half */
   width: calc(50% - 84px); /* leaves a center channel for the curve */
   max-width: 520px;
   min-width: 0;
+}
+
+/* A chat edit pulses the affected card's amber glow, matching the timeline. */
+.phase-slot-flash::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px var(--color-electric), 0 0 24px 2px var(--color-electric-glow);
+  animation: edit-pulse 1.1s ease-out forwards;
+}
+
+@keyframes edit-pulse {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No pulse — a steady glow for the ~1s window the JS keeps the class on. */
+  .phase-slot-flash::after {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 .timeline-svg .tl-seg,
@@ -2394,6 +2618,166 @@ kbd {
   background: rgba(198, 93, 58, 0.1);
 }
 
+/* ---- Follow-up chat panel ------------------------------------------------------- */
+
+.followup-fab {
+  position: fixed;
+  right: var(--spacing-24);
+  bottom: var(--spacing-24);
+  z-index: 46;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  color: #1a1714;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  padding: 12px 22px;
+  cursor: pointer;
+  box-shadow: 0 8px 28px -10px rgba(12, 9, 5, 0.9);
+  transition:
+    filter 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.25s ease;
+}
+
+.followup-fab:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(198, 93, 58, 0.3), 0 8px 28px -10px rgba(12, 9, 5, 0.9);
+}
+
+.followup-fab:active {
+  transform: translateY(1px);
+}
+
+.followup-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 45;
+  width: 380px;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border-bright);
+  box-shadow: -24px 0 60px -30px rgba(12, 9, 5, 0.9);
+}
+
+.followup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-16) var(--spacing-24);
+  border-bottom: var(--divider);
+}
+
+.followup-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.followup-close {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.followup-close:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-bright);
+}
+
+.followup-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.followup-row {
+  display: flex;
+}
+
+.followup-row-agent {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.followup-row-user {
+  justify-content: flex-end;
+}
+
+.followup-bubble-agent {
+  max-width: 85%;
+  background: var(--color-surface-raised);
+  border: var(--border-hairline);
+  border-radius: var(--radius-lg);
+  border-top-left-radius: var(--radius-sm);
+  padding: var(--spacing-12) var(--spacing-16);
+  font-size: var(--text-body-sm);
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+
+.followup-chip-user {
+  max-width: 85%;
+  background: var(--color-electric-dim);
+  border: 1px solid rgba(212, 162, 76, 0.5);
+  border-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-sm);
+  padding: var(--spacing-8) var(--spacing-16);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.followup-confirm {
+  align-self: flex-start;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-success);
+  background: rgba(122, 176, 106, 0.1);
+  border: 1px solid rgba(122, 176, 106, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+}
+
+.followup-input-area {
+  display: flex;
+  gap: var(--spacing-8);
+  align-items: flex-end;
+  padding: var(--spacing-16);
+  border-top: var(--divider);
+}
+
+.followup-input-area .chat-input {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .followup-panel {
+    width: 100vw;
+  }
+}
+
 /* ---- Shortcut hints ------------------------------------------------------------- */
 
 .shortcut-hints {
@@ -2410,6 +2794,197 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-8);
+}
+
+/* ---- Reasoning trace (four-agent pipeline) -------------------------------------- */
+
+.reasoning-trace {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--spacing-48) var(--spacing-24) var(--spacing-80);
+}
+
+.reasoning-head {
+  margin-bottom: var(--spacing-32);
+}
+
+.reasoning-sub {
+  margin-top: var(--spacing-8);
+  font-size: var(--text-body);
+  color: var(--color-text-secondary);
+}
+
+.trace-stages {
+  display: flex;
+  flex-direction: column;
+}
+
+.trace-stage {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: var(--spacing-16);
+}
+
+.trace-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trace-node {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trace-node-waiting {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border-bright);
+}
+
+.trace-node-active {
+  background: var(--color-electric);
+  box-shadow: 0 0 12px var(--color-electric-glow);
+}
+
+.trace-node-complete {
+  background: var(--color-electric);
+  box-shadow: 0 0 8px var(--color-electric-glow);
+}
+
+.trace-node-skipped {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.trace-connector {
+  flex: 1;
+  width: 2px;
+  min-height: 28px;
+  margin: 4px 0;
+  background: var(--color-border);
+}
+
+/* Completed/skipped segments glow amber, echoing the main timeline. */
+.trace-complete .trace-connector,
+.trace-skipped .trace-connector {
+  background: var(--color-electric);
+  box-shadow: 0 0 8px rgba(212, 162, 76, 0.5);
+}
+
+.trace-body {
+  min-width: 0;
+  padding-bottom: var(--spacing-24);
+}
+
+.trace-headrow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+.trace-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-muted);
+  transition: color 0.3s ease;
+}
+
+.trace-active .trace-name,
+.trace-complete .trace-name {
+  color: var(--color-text-primary);
+}
+
+.trace-role {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.trace-console {
+  margin-top: var(--spacing-12);
+  max-height: 172px;
+  overflow-y: auto;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-12);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--color-electric);
+}
+
+.trace-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.trace-line::before {
+  content: '› ';
+  opacity: 0.55;
+}
+
+.trace-line-dim {
+  color: var(--color-text-muted);
+}
+
+.trace-status-line {
+  margin-top: var(--spacing-8);
+  font-size: var(--text-body-sm);
+}
+
+.trace-done {
+  color: var(--color-success);
+}
+
+.trace-skip {
+  color: var(--color-text-muted);
+}
+
+.trace-spinner {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid #1a1714;
+  border-top-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trace-spinner {
+    animation: trace-spin 0.7s linear infinite;
+  }
+  .trace-line {
+    animation: trace-line-in 0.3s ease-out;
+  }
+}
+
+@keyframes trace-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes trace-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---- Error state ------------------------------------------------------------------ */

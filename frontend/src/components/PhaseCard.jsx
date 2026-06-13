@@ -66,6 +66,21 @@ function CheckIcon() {
   )
 }
 
+function ExtLinkIcon() {
+  return (
+    <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true" className="ext-link-icon">
+      <path
+        d="M4.5 2.5H9.5V7.5M9.5 2.5L5 7M8 8.5V9.5H2.5V4H3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 const tagClass = (tag) => `tag tag-${String(tag).toLowerCase().replace(/\s+/g, '-')}`
 
 const TAG_MEANINGS = {
@@ -298,6 +313,7 @@ export default function PhaseCard({
   const checkpoints = phase.checkpoints || []
   const risks = phase.risks || []
   const tools = phase.tools_required || []
+  const sources = (phase.sources || []).filter((s) => s && s.url)
   const sectionItems = { checkpoints, risks, tools }
 
   // Upcoming phases collapse to their essentials — number, title, duration —
@@ -451,6 +467,26 @@ export default function PhaseCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {sources.length > 0 && (
+        <div className="sources-block">
+          <span className="widget-label">Sources</span>
+          <div className="source-chips">
+            {sources.map((s, i) => (
+              <a
+                key={i}
+                className="source-chip"
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {s.label || s.url}
+                <ExtLinkIcon />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="phase-divider" />
 

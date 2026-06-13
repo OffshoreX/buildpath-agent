@@ -76,12 +76,12 @@ def _get_openai_client(client):
 # Run strategies
 # ---------------------------------------------------------------------------
 
-def _run_agent_legacy(client, prompt):
+def _run_agent_legacy(client, prompt, agent_id):
     """azure-ai-projects 1.x flow: thread -> message -> run -> poll -> messages."""
     agents = client.agents
     thread = agents.threads.create()
     agents.messages.create(thread_id=thread.id, role="user", content=prompt)
-    run = agents.runs.create(thread_id=thread.id, agent_id=AZURE_AGENT_ID)
+    run = agents.runs.create(thread_id=thread.id, agent_id=agent_id)
 
     deadline = time.time() + RUN_TIMEOUT_SECONDS
     while run.status in ("queued", "in_progress", "requires_action"):
@@ -122,14 +122,14 @@ def _legacy_message_text(message):
     return "\n".join(parts)
 
 
-def _run_agent_v2(client, prompt):
+def _run_agent_v2(client, prompt, agent_id):
     """azure-ai-projects 2.x flow: conversation + response against the named agent."""
     openai_client = _get_openai_client(client)
     conversation = openai_client.conversations.create()
     response = openai_client.responses.create(
         conversation=conversation.id,
         input=prompt,
-        extra_body={"agent": {"name": AZURE_AGENT_ID, "type": "agent_reference"}},
+        extra_body={"agent": {"name": agent_id, "type": "agent_reference"}},
     )
 
     deadline = time.time() + RUN_TIMEOUT_SECONDS
@@ -161,11 +161,11 @@ def _run_agent_v2(client, prompt):
     raise RuntimeError("Agent response completed but contained no output text.")
 
 
-def _run_agent(client, prompt):
+def _run_agent(client, prompt, agent_id):
     agents = getattr(client, "agents", None)
     if agents is not None and hasattr(agents, "threads"):
-        return _run_agent_legacy(client, prompt)
-    return _run_agent_v2(client, prompt)
+        return _run_agent_legacy(client, prompt, agent_id)
+    return _run_agent_v2(client, prompt, agent_id)
 
 
 def _run_direct_model(client, prompt):
@@ -213,11 +213,20 @@ def _extract_json(text):
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def generate(prompt):
-    """Send a prompt to the BuildPath Foundry agent and return parsed JSON.
+def generate(prompt, agent_id=None):
+    """Send a prompt to a specific BuildPath Foundry agent and return parsed JSON.
 
-    Returns the parsed dict on success, or {"error": "..."} on any failure.
+    `agent_id` selects which Foundry agent runs (planner / researcher / risk /
+    critic in the reasoning pipeline); when omitted it falls back to the single
+    default agent so the original /api/generate path is unchanged. Returns the
+    parsed dict on success, or {"error": "..."} on any failure.
+
+    Note on streaming: the polled Foundry SDK does not expose intermediate
+    tokens, so the live reasoning trace is streamed at the orchestration layer
+    (app.py) from each agent's own returned `reasoning` steps — real
+    agent-produced text, not fabricated progress.
     """
+    agent_id = agent_id or AZURE_AGENT_ID
     try:
         client = _get_project_client()
     except Exception as exc:  # noqa: BLE001 - surface every connection failure as data
@@ -225,12 +234,16 @@ def generate(prompt):
 
     raw_text = None
     failures = []
-    for runner in (_run_agent, _run_direct_model):
+    strategies = (
+        ("agent", lambda: _run_agent(client, prompt, agent_id)),
+        ("direct_model", lambda: _run_direct_model(client, prompt)),
+    )
+    for name, runner in strategies:
         try:
-            raw_text = runner(client, prompt)
+            raw_text = runner()
             break
         except Exception as exc:  # noqa: BLE001 - try the next strategy, keep the reason
-            failures.append(f"{runner.__name__.lstrip('_')}: {exc}")
+            failures.append(f"{name}: {exc}")
 
     if raw_text is None:
         return {"error": "Agent run failed — " + " | ".join(failures)}

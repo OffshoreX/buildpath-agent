@@ -71,6 +71,10 @@ const sampleRoadmap = {
           'GB2208 torque may be marginal for the 620g camera at full extension — if phase current exceeds 70% holding level, step up to GB4108 motors before cutting any frame parts',
         ],
         tools_required: ['SimpleFOC library', 'Bench power supply', 'IR thermometer', 'M3 hardware kit'],
+        sources: [
+          { label: 'SimpleFOC docs', url: 'https://docs.simplefoc.com' },
+          { label: 'AS5600 datasheet', url: 'https://ams.com/as5600' },
+        ],
         tags: ['critical-path', 'research', 'high-risk'],
         confidence: 0.78,
       },
@@ -90,6 +94,12 @@ const sampleRoadmap = {
           'Running two AS5600s plus the MPU-6050 on one I2C bus caps the loop near 600Hz — plan for the second I2C peripheral or an SPI IMU',
         ],
         tools_required: ['MPU-6050 IMU', 'STM32CubeIDE', 'Logic analyzer', 'PlatformIO'],
+        sources: [
+          {
+            label: 'STM32G431 reference',
+            url: 'https://www.st.com/en/microcontrollers-microprocessors/stm32g431cb.html',
+          },
+        ],
         tags: ['critical-path', 'build'],
         confidence: 0.71,
       },

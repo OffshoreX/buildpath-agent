@@ -1,3 +1,11 @@
+import { useEffect, useRef, useState } from 'react'
+
+const EXPORT_OPTIONS = [
+  { format: 'json', label: 'JSON', icon: '{ }' },
+  { format: 'markdown', label: 'Markdown', icon: 'M↓' },
+  { format: 'pdf', label: 'PDF', icon: '▤' },
+]
+
 export default function ProjectHeader({
   roadmap,
   completedCount,
@@ -6,6 +14,30 @@ export default function ProjectHeader({
   onExport,
   onStartOver,
 }) {
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportRef = useRef(null)
+
+  useEffect(() => {
+    if (!exportOpen) return
+    const onDocClick = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false)
+    }
+    const onEsc = (e) => {
+      if (e.key === 'Escape') setExportOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onEsc)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onEsc)
+    }
+  }, [exportOpen])
+
+  const pickExport = (format) => {
+    setExportOpen(false)
+    onExport(format)
+  }
+
   const pct = totalCount ? Math.round((completedCount / totalCount) * 100) : 0
   const presetType = roadmap.preset_type || 'CUSTOM'
   const generatedAt = roadmap.generated_at ? new Date(roadmap.generated_at) : new Date()
@@ -31,9 +63,33 @@ export default function ProjectHeader({
           </div>
         </div>
         <div className="header-actions">
-          <button type="button" className="btn-ghost" onClick={onExport}>
-            Export JSON
-          </button>
+          <div className="export-menu" ref={exportRef}>
+            <button
+              type="button"
+              className="btn-ghost"
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              onClick={() => setExportOpen((v) => !v)}
+            >
+              Export ▾
+            </button>
+            {exportOpen && (
+              <div className="export-dropdown" role="menu">
+                {EXPORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.format}
+                    type="button"
+                    role="menuitem"
+                    className="export-option"
+                    onClick={() => pickExport(opt.format)}
+                  >
+                    <span className="export-ico">{opt.icon}</span>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button type="button" className="btn-ghost" onClick={onStartOver}>
             New Project
           </button>
