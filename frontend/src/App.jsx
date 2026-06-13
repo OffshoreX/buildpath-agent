@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import HomePage, { saveRoadmap, updateSavedRoadmap } from './components/HomePage.jsx'
 import OnboardingChat from './components/OnboardingChat.jsx'
 import RoadmapView from './components/RoadmapView.jsx'
@@ -169,6 +169,8 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* All framer animations honor the OS reduced-motion setting. */}
+      <MotionConfig reducedMotion="user">
       <AnimatePresence mode="wait">
         {stage === STAGES.HOME && (
           <motion.div key="home" className="stage" {...stageMotion}>
@@ -209,6 +211,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      </MotionConfig>
     </div>
   )
 }

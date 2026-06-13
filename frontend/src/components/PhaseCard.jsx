@@ -331,8 +331,8 @@ export default function PhaseCard({
   return (
     <motion.article
       className={`phase-card phase-${status}${regenFlash ? ' phase-regenerated' : ''}`}
-      initial={{ opacity: 0, x: 20 }}
-      whileInView={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, x: 20, filter: 'blur(6px)' }}
+      whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
       viewport={{ once: true, margin: '-100px' }}
       transition={{ duration: 0.4, ease: 'easeOut', delay: index < 4 ? index * 0.15 : 0.1 }}
     >

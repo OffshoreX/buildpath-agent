@@ -186,11 +186,16 @@ h3 {
   border-radius: var(--radius-md);
   padding: 10px 20px;
   cursor: pointer;
-  transition: filter 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+  transition:
+    filter 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s ease;
 }
 
 .btn-accent:hover:not(:disabled) {
   filter: brightness(1.1);
+  transform: translateY(-1px); /* magnetic lift; press still lands at +1px */
 }
 
 .btn-accent:disabled {
@@ -208,7 +213,10 @@ h3 {
   border-radius: var(--radius-md);
   padding: 9px 16px;
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -606,6 +614,14 @@ kbd {
   filter: brightness(1.12);
 }
 
+.btn-send svg {
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.btn-send:hover:not(:disabled) svg {
+  transform: translateX(2px); /* the arrow leans into the send */
+}
+
 .btn-send:disabled {
   opacity: 0.3;
   cursor: not-allowed;
@@ -630,7 +646,11 @@ kbd {
   border-radius: var(--radius-md);
   padding: 9px 14px;
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   user-select: none;
 }
 
@@ -668,8 +688,13 @@ kbd {
   border: var(--border-bright);
   border-radius: var(--radius-lg);
   padding: var(--spacing-24);
-  margin-top: var(--spacing-8);
-  box-shadow: var(--shadow-card);
+  margin: var(--spacing-8) 5px 5px;
+  /* concentric bezel: the card sits in a machined walnut tray */
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgba(237, 230, 219, 0.06),
+    0 0 0 4px rgba(35, 31, 27, 0.7),
+    0 0 0 5px rgba(237, 230, 219, 0.08);
 }
 
 .summary-card-label {
@@ -994,6 +1019,7 @@ kbd {
   border: var(--border-hairline);
   border-radius: var(--radius-md);
   padding: var(--spacing-16);
+  box-shadow: inset 0 1px 0 rgba(237, 230, 219, 0.05);
 }
 
 .info-card p {
@@ -1263,6 +1289,8 @@ kbd {
   border: var(--border-hairline);
   border-radius: var(--radius-lg);
   padding: 20px;
+  /* top-edge catch-light: the machined-surface cue */
+  box-shadow: inset 0 1px 0 rgba(237, 230, 219, 0.05);
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1277,6 +1305,7 @@ kbd {
   border: var(--border-electric);
   box-shadow:
     inset 0 0 0 1px rgba(212, 162, 76, 0.3),
+    inset 0 1px 0 rgba(237, 230, 219, 0.06),
     0 0 30px rgba(212, 162, 76, 0.08);
 }
 
@@ -2222,11 +2251,18 @@ kbd {
   border-radius: var(--radius-md);
   padding: 20px 24px;
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(237, 230, 219, 0.05);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .home-continue:hover {
   border-color: var(--color-border-bright);
+  /* soft diffused ground shadow: the panel floats toward the hand */
+  box-shadow:
+    inset 0 1px 0 rgba(237, 230, 219, 0.05),
+    0 18px 40px -24px rgba(12, 9, 5, 0.9);
 }
 
 .home-continue-main {
