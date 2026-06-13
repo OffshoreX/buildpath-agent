@@ -1,17 +1,20 @@
 /* ==========================================================================
-   BuildPath marketing landing — standalone skin, independent of the app.
-   Ink near-black, bone white, international orange. Cabinet Grotesk only.
+   BuildPath marketing landing — the Workshop Blueprint identity at poster
+   scale. Aged oak, warm cream, terracotta action, amber accents, Playfair
+   headlines over an Inter body.
    ========================================================================== */
 
 :root {
-  --lp-ink: #0b0b0c;
-  --lp-ink-2: #131315;
-  --lp-bone: #f3f1ec;
-  --lp-bone-dim: rgba(243, 241, 236, 0.64);
-  --lp-bone-faint: rgba(243, 241, 236, 0.38);
-  --lp-orange: #ff4f12;
-  --lp-hairline: rgba(243, 241, 236, 0.12);
-  --lp-font: 'Cabinet Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --lp-ink: #1a1714;
+  --lp-ink-2: #231f1b;
+  --lp-bone: #ede6db;
+  --lp-bone-dim: rgba(237, 230, 219, 0.64);
+  --lp-bone-faint: rgba(237, 230, 219, 0.38);
+  --lp-terracotta: #c65d3a;
+  --lp-amber: #d4a24c;
+  --lp-hairline: rgba(237, 230, 219, 0.12);
+  --lp-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --lp-display: 'Playfair Display', Georgia, serif;
 }
 
 * {
@@ -88,16 +91,16 @@ a {
 }
 
 .lp-btn-fill {
-  background: var(--lp-orange);
-  color: #140700;
+  background: var(--lp-terracotta);
+  color: #1a1714;
 }
 
 .lp-btn-fill:hover {
-  background: #ff6a35;
+  background: #d97352;
 }
 
 .lp-btn-line {
-  border: 1px solid rgba(243, 241, 236, 0.4);
+  border: 1px solid rgba(237, 230, 219, 0.4);
   color: var(--lp-bone);
 }
 
@@ -117,8 +120,18 @@ a {
 
 .lp-btn:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--lp-orange);
+  outline: 2px solid var(--lp-amber);
   outline-offset: 3px;
+}
+
+/* Headlines speak in the app's display voice. */
+.lp-h1,
+.lp-h2,
+.lp-action-title,
+.lp-wordmark,
+.lp-card h3,
+.lp-slice h3 {
+  font-family: var(--lp-display);
 }
 
 /* ---- Nav: minimal split ----------------------------------------------- */
@@ -134,11 +147,11 @@ a:focus-visible {
   justify-content: space-between;
   gap: 2rem;
   padding: 1.25rem clamp(1.5rem, 4vw, 4rem);
-  background: linear-gradient(to bottom, rgba(11, 11, 12, 0.85), rgba(11, 11, 12, 0));
+  background: linear-gradient(to bottom, rgba(26, 23, 20, 0.85), rgba(26, 23, 20, 0));
 }
 
 .lp-wordmark {
-  font-weight: 800;
+  font-weight: 700;
   font-size: 1.2rem;
   letter-spacing: -0.01em;
 }
@@ -173,14 +186,14 @@ a:focus-visible {
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: grayscale(1) contrast(1.25) brightness(0.9);
+  filter: sepia(0.45) contrast(1.15) brightness(0.85) saturate(0.6);
 }
 
 .lp-hero-wash {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at center, rgba(11, 11, 12, 0.55) 0%, rgba(11, 11, 12, 0.92) 78%),
+    radial-gradient(ellipse at center, rgba(26, 23, 20, 0.55) 0%, rgba(26, 23, 20, 0.92) 78%),
     linear-gradient(to top, var(--lp-ink) 0%, transparent 30%);
 }
 
@@ -196,7 +209,7 @@ a:focus-visible {
 
 .lp-h1 {
   font-size: clamp(3rem, 5.2vw, 5.5rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.025em;
   text-wrap: balance;
@@ -253,7 +266,7 @@ a:focus-visible {
 
 .lp-h2 {
   font-size: clamp(2.25rem, 3.6vw, 3.75rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.06;
   letter-spacing: -0.02em;
   max-width: 60rem;
@@ -270,7 +283,7 @@ a:focus-visible {
   background-position: center;
   vertical-align: middle;
   margin: 0 0.35rem;
-  filter: grayscale(1) contrast(1.2);
+  filter: sepia(0.45) contrast(1.1) saturate(0.6);
 }
 
 /* ---- Bento: 4 cols x 2 rows, dense, zero voids -------------------------- */
@@ -321,7 +334,7 @@ a:focus-visible {
   height: 100%;
   object-fit: cover;
   display: block;
-  filter: grayscale(1) contrast(1.2);
+  filter: sepia(0.45) contrast(1.1) saturate(0.6);
   transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -342,7 +355,7 @@ a:focus-visible {
 
 .lp-mono-line {
   font-size: 1.15rem;
-  color: var(--lp-orange);
+  color: var(--lp-amber);
   font-weight: 500;
 }
 
@@ -392,7 +405,7 @@ a:focus-visible {
   aspect-ratio: 3 / 2;
   object-fit: cover;
   display: block;
-  filter: grayscale(1) contrast(1.2);
+  filter: sepia(0.45) contrast(1.1) saturate(0.6);
   transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -446,7 +459,7 @@ a:focus-visible {
   border-radius: 1.25rem;
   overflow: hidden;
   border: 1px solid var(--lp-hairline);
-  background-image: linear-gradient(to top, rgba(11, 11, 12, 0.92) 25%, rgba(11, 11, 12, 0.35)),
+  background-image: linear-gradient(to top, rgba(26, 23, 20, 0.92) 25%, rgba(26, 23, 20, 0.35)),
     var(--slice-img);
   background-size: cover;
   background-position: center;
@@ -466,7 +479,7 @@ a:focus-visible {
 
 .lp-slice h3 {
   font-size: 1.6rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.015em;
 }
 
@@ -498,7 +511,7 @@ a:focus-visible {
 
 .lp-action-title {
   font-size: clamp(3.5rem, 8vw, 7.5rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 0.98;
 }

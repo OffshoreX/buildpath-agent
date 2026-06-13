@@ -176,7 +176,7 @@ h3 {
 /* ---- Buttons ----------------------------------------------------------- */
 
 .btn-accent {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.02em;
@@ -306,7 +306,7 @@ kbd {
 .onboarding-logo {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: var(--text-subheading);
+  font-size: 20px; /* at the Playfair floor, never below */
   color: var(--color-text-primary);
 }
 
@@ -316,8 +316,48 @@ kbd {
   letter-spacing: 0.04em;
 }
 
-.onboarding-counter {
+/* Fast path: every question on one scrollable form. */
+.onboarding-mode {
   margin-left: auto;
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.onboarding-mode:hover {
+  color: var(--color-electric);
+  border-color: var(--color-electric);
+}
+
+.onboarding-form {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+  padding: var(--spacing-24) var(--spacing-4) var(--spacing-32);
+}
+
+.form-q {
+  display: block;
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-8);
+}
+
+.onboarding-form .btn-generate {
+  margin-top: var(--spacing-8);
+}
+
+.onboarding-counter {
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: 12px;
@@ -408,7 +448,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 10px;
   letter-spacing: 0.05em;
@@ -436,10 +476,11 @@ kbd {
   color: var(--color-text-secondary);
 }
 
-/* The active question speaks in the display voice. */
+/* The active question is emphasized — but stays in the body face: Playfair's
+   hairline strokes sparkle below ~20px on the dark canvas. */
 .chat-bubble-emphasis {
-  font-family: var(--font-display);
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 18px;
   letter-spacing: -0.01em;
   line-height: 1.4;
@@ -1297,6 +1338,8 @@ kbd {
 }
 
 .phase-collapsed-row .phase-title {
+  font-family: var(--font-body); /* below the 20px Playfair floor */
+  font-weight: 600;
   font-size: 16px;
 }
 
@@ -1360,15 +1403,17 @@ kbd {
 }
 
 .tag {
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
+  line-height: 1.4;
   border-radius: 999px;
   border: 1px solid;
   padding: 3px 8px;
   white-space: nowrap;
   opacity: 0.85;
-  cursor: help;
+  cursor: pointer; /* tappable: toggles the inline meaning */
 }
 
 .tag-critical-path {
@@ -1399,9 +1444,9 @@ kbd {
 .tag-build,
 .tag-test,
 .tag-deploy {
-  color: #6b5f52;
-  border-color: rgba(107, 95, 82, 0.5);
-  background: rgba(107, 95, 82, 0.1);
+  color: var(--color-text-secondary); /* warm muted border, readable text */
+  border-color: rgba(107, 95, 82, 0.6);
+  background: rgba(107, 95, 82, 0.12);
 }
 
 .phase-description {
@@ -1410,6 +1455,22 @@ kbd {
   font-size: 14px;
   color: rgba(237, 230, 219, 0.7);
   line-height: 1.6;
+}
+
+/* Tap-visible tooltip surface: shows a tag's or the confidence's meaning. */
+.phase-hint {
+  margin-bottom: var(--spacing-16);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  background: var(--color-electric-dim);
+  border: 1px solid rgba(212, 162, 76, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.phase-hint-confidence {
+  margin-top: -8px;
 }
 
 .phase-dependencies {
@@ -1555,14 +1616,18 @@ kbd {
 }
 
 .confidence-label {
+  font-family: var(--font-body);
   font-size: var(--text-caption);
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
   white-space: nowrap;
-  cursor: help;
+  cursor: pointer;
+  background: transparent;
+  border: none;
   border-bottom: 1px dotted var(--color-border-bright);
+  padding: 0;
 }
 
 .confidence-track {
@@ -2192,7 +2257,7 @@ kbd {
 }
 
 .home-continue-cta {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 14px;
   color: var(--color-accent);
@@ -2446,6 +2511,17 @@ kbd {
     animation: rail-flare 1.4s ease-out both;
   }
 
+  /* Freshly regenerated content announces itself with a fading amber wash. */
+  .phase-regenerated::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    pointer-events: none;
+    background: rgba(212, 162, 76, 0.14);
+    animation: regen-wash 1.5s ease-out forwards;
+  }
+
   .header-complete {
     opacity: 0;
     animation: chip-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
@@ -2531,6 +2607,15 @@ kbd {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes regen-wash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 

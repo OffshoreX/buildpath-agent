@@ -152,6 +152,8 @@ A golden-hour workshop palette: amber line-work and terracotta action on warm wa
 ### Named Rules
 **The Tabular Rule.** Every changing number keeps `font-variant-numeric: tabular-nums` in the mono stack so reflow never wobbles.
 
+**The Display Floor Rule.** Playfair Display never renders below 20px — its hairline strokes sparkle on the dark canvas at small sizes. Sub-20px heading roles (collapsed phase rows, the emphasized chat question, buttons, the avatar) are carried by Inter 600/700.
+
 ## 4. Elevation
 
 Depth stays layered, not lifted: the warm tonal ramp (canvas → surface → raised) carries structure. Shadows are warm-black ambient grounding only; glow is the amber state signal, budgeted as ever. Hover changes border color, not altitude.

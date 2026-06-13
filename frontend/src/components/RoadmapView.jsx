@@ -56,18 +56,35 @@ export default function RoadmapView({
       const height = container.scrollHeight
       if (!width || !height) return
       const mobile = mq.matches
-      const amplitude = Math.min(64, width * 0.08)
-      const nodes = []
+      const baseAmplitude = Math.min(64, width * 0.08)
+
+      // First pass: vertical anchors and card edges.
+      const anchors = []
       for (let i = 0; i < phases.length; i++) {
         const row = rowRefs.current[i]
         const slot = row?.firstElementChild
         if (!row || !slot) return
-        const y = row.offsetTop + 44 // aligned with the card header
-        const x = mobile ? 16 : i % 2 === 0 ? width / 2 - amplitude : width / 2 + amplitude
-        const edgeX =
-          mobile || i % 2 === 1 ? slot.offsetLeft : slot.offsetLeft + slot.offsetWidth
-        nodes.push({ x, y, edgeX })
+        anchors.push({
+          y: row.offsetTop + 44, // aligned with the card header
+          edgeX:
+            mobile || i % 2 === 1 ? slot.offsetLeft : slot.offsetLeft + slot.offsetWidth,
+        })
       }
+
+      // Second pass: horizontal swing, clamped so the curve never kinks.
+      // Across short segments (collapsed rows) the swing shrinks to at most
+      // 0.3x the shortest adjacent vertical run, keeping the S gentle.
+      const nodes = anchors.map((anchor, i) => {
+        const dyPrev = i > 0 ? anchor.y - anchors[i - 1].y : Infinity
+        const dyNext = i < anchors.length - 1 ? anchors[i + 1].y - anchor.y : Infinity
+        const amplitude = Math.max(
+          0,
+          Math.min(baseAmplitude, 0.3 * Math.min(dyPrev, dyNext))
+        )
+        const x = mobile ? 16 : width / 2 + (i % 2 === 0 ? -amplitude : amplitude)
+        return { x, y: anchor.y, edgeX: anchor.edgeX }
+      })
+
       setGeometry({ width, height, nodes })
     }
 
@@ -210,6 +227,7 @@ export default function RoadmapView({
                 status={statusFor(i)}
                 index={i}
                 projectName={roadmap.project_name}
+                storageScope={savedId || roadmap.project_name}
                 onMarkComplete={() => markComplete(phase.phase_number)}
                 onRegenerate={onRegeneratePhase}
                 onRestore={onRestorePhase}

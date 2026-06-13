@@ -100,14 +100,18 @@ const TEST_STATUS_LABEL = { pending: 'Pending', pass: 'Pass âœ“', fail: 'Fail âœ
 const DEPLOY_STATE_LABEL = ['not started', 'in progress', 'done']
 
 // Per-phase widget rows persisted to localStorage. The setter writes through
-// on every change; corrupted or empty storage falls back to the default.
-function usePersistedRows(key, makeDefault) {
+// on every change; corrupted or empty storage falls back to the legacy
+// project-name key (pre-id data), then to the default. Writes always go to
+// the new key.
+function usePersistedRows(key, legacyKey, makeDefault) {
   const [rows, setRows] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(key) || 'null')
-      if (Array.isArray(saved) && saved.length > 0) return saved
-    } catch {
-      // fall through to the default
+    for (const k of [key, legacyKey]) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(k) || 'null')
+        if (Array.isArray(saved) && saved.length > 0) return saved
+      } catch {
+        // try the next source
+      }
     }
     return makeDefault()
   })
@@ -129,10 +133,18 @@ export default function PhaseCard({
   onNotesChange,
   expandDirective,
   registerNotesRef,
+  storageScope,
 }) {
-  const notesKey = `buildpath-notes-${projectName}-phase-${phase.phase_number}`
+  // Widget/notes storage is scoped by saved-entry id so two roadmaps with the
+  // same name never share state; the project-name key remains as a read-only
+  // legacy fallback for data saved before ids existed.
+  const scope = storageScope || projectName
+  const notesKey = `buildpath-notes-${scope}-phase-${phase.phase_number}`
+  const legacyNotesKey = `buildpath-notes-${projectName}-phase-${phase.phase_number}`
   const phaseTags = (phase.tags || []).map((t) => String(t).toLowerCase())
-  const keyFor = (kind) => `buildpath-${kind}-${projectName}-phase-${phase.phase_number}`
+  const keyFor = (kind) => `buildpath-${kind}-${scope}-phase-${phase.phase_number}`
+  const legacyKeyFor = (kind) =>
+    `buildpath-${kind}-${projectName}-phase-${phase.phase_number}`
   const partsKey = keyFor('parts')
   const isBuildPhase = phaseTags.includes('build')
   const isResearchPhase = phaseTags.includes('research')
@@ -141,27 +153,45 @@ export default function PhaseCard({
   const [open, setOpen] = useState({ checkpoints: false, risks: false, tools: false })
   const [peek, setPeek] = useState(false) // upcoming cards stay collapsed until peeked
   const [checked, setChecked] = useState(() => new Set())
-  const [notes, setNotes] = useState(() => localStorage.getItem(notesKey) || '')
+  const [notes, setNotes] = useState(
+    () => localStorage.getItem(notesKey) || localStorage.getItem(legacyNotesKey) || ''
+  )
   const [savedVisible, setSavedVisible] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [regenError, setRegenError] = useState('')
   const [undoPhase, setUndoPhase] = useState(null) // pre-regeneration snapshot
-  const [parts, persistParts] = usePersistedRows(partsKey, () => [
+  const [regenFlash, setRegenFlash] = useState(false) // amber wash on fresh content
+  const [hint, setHint] = useState(null) // tap-visible tooltip: { scope, text }
+
+  useEffect(() => {
+    if (!regenFlash) return
+    const timer = setTimeout(() => setRegenFlash(false), 1600)
+    return () => clearTimeout(timer)
+  }, [regenFlash])
+
+  const toggleHint = (scope, text) => {
+    setHint((prev) => (prev && prev.text === text ? null : { scope, text }))
+  }
+  const [parts, persistParts] = usePersistedRows(partsKey, legacyKeyFor('parts'), () => [
     emptyPartRow(),
     emptyPartRow(),
     emptyPartRow(),
   ])
-  const [findings, persistFindings] = usePersistedRows(keyFor('findings'), () => [])
-  const [tests, persistTests] = usePersistedRows(keyFor('tests'), () => [
+  const [findings, persistFindings] = usePersistedRows(
+    keyFor('findings'),
+    legacyKeyFor('findings'),
+    () => []
+  )
+  const [tests, persistTests] = usePersistedRows(keyFor('tests'), legacyKeyFor('tests'), () => [
     emptyTest(),
     emptyTest(),
     emptyTest(),
   ])
-  const [deploySteps, persistDeploySteps] = usePersistedRows(keyFor('deploy'), () => [
-    emptyDeployStep(),
-    emptyDeployStep(),
-    emptyDeployStep(),
-  ])
+  const [deploySteps, persistDeploySteps] = usePersistedRows(
+    keyFor('deploy'),
+    legacyKeyFor('deploy'),
+    () => [emptyDeployStep(), emptyDeployStep(), emptyDeployStep()]
+  )
   const notesRef = useRef(null)
   const savedTimer = useRef(null)
 
@@ -214,6 +244,7 @@ export default function PhaseCard({
     try {
       await onRegenerate(phase)
       setUndoPhase(previous)
+      setRegenFlash(true)
     } catch (err) {
       setRegenError(err.message || 'Regeneration failed.')
     } finally {
@@ -299,7 +330,7 @@ export default function PhaseCard({
 
   return (
     <motion.article
-      className={`phase-card phase-${status}`}
+      className={`phase-card phase-${status}${regenFlash ? ' phase-regenerated' : ''}`}
       initial={{ opacity: 0, x: 20 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: '-100px' }}
@@ -315,15 +346,21 @@ export default function PhaseCard({
         <span className="phase-number">{String(phase.phase_number).padStart(2, '0')}</span>
         <h3 className="phase-title">{phase.title}</h3>
         {phase.duration && <span className="duration-badge">{phase.duration}</span>}
-        {(phase.tags || []).map((tag) => (
-          <span
-            key={tag}
-            className={tagClass(tag)}
-            title={TAG_MEANINGS[String(tag).toLowerCase()] || undefined}
-          >
-            {tag}
-          </span>
-        ))}
+        {(phase.tags || []).map((tag) => {
+          const meaning = TAG_MEANINGS[String(tag).toLowerCase()]
+          return (
+            <button
+              key={tag}
+              type="button"
+              className={tagClass(tag)}
+              title={meaning}
+              aria-expanded={hint?.text === meaning}
+              onClick={() => meaning && toggleHint('tags', meaning)}
+            >
+              {tag}
+            </button>
+          )
+        })}
         {status === 'upcoming' && (
           <button
             type="button"
@@ -336,6 +373,12 @@ export default function PhaseCard({
           </button>
         )}
       </div>
+
+      {hint?.scope === 'tags' && (
+        <p className="phase-hint" role="status">
+          {hint.text}
+        </p>
+      )}
 
       <p className="phase-description">{phase.description}</p>
 
@@ -412,14 +455,26 @@ export default function PhaseCard({
       <div className="phase-divider" />
 
       <div className="confidence-row">
-        <span className="confidence-label" title={CONFIDENCE_HINT}>
+        <button
+          type="button"
+          className="confidence-label"
+          title={CONFIDENCE_HINT}
+          aria-expanded={hint?.scope === 'confidence'}
+          onClick={() => toggleHint('confidence', CONFIDENCE_HINT)}
+        >
           Agent confidence
-        </span>
+        </button>
         <div className="confidence-track">
           <div className="confidence-fill" style={{ '--fill': confidence / 100 }} />
         </div>
         <span className="confidence-value">{confidence}%</span>
       </div>
+
+      {hint?.scope === 'confidence' && (
+        <p className="phase-hint phase-hint-confidence" role="status">
+          {hint.text}
+        </p>
+      )}
 
       {isBuildPhase && (
         <div className="parts-wrap">

@@ -174,6 +174,10 @@ export default function OnboardingChat({ onComplete }) {
   const [otherInput, setOtherInput] = useState(false) // "Other..." picked on a select
   const [editingId, setEditingId] = useState(null) // summary field being edited inline
   const [editValue, setEditValue] = useState(null)
+  // Fast path for repeat users: every question on one form. Preference sticks.
+  const [formMode, setFormMode] = useState(
+    () => localStorage.getItem('buildpath-onboard-mode') === 'form'
+  )
   const [typing, setTyping] = useState(true)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
@@ -244,6 +248,44 @@ export default function OnboardingChat({ onComplete }) {
 
   const handleGenerate = () => {
     onComplete({ ...answers })
+  }
+
+  const toggleFormMode = () => {
+    setFormMode((prev) => {
+      const next = !prev
+      localStorage.setItem('buildpath-onboard-mode', next ? 'form' : 'chat')
+      return next
+    })
+  }
+
+  // Form mode writes straight into the shared answers state, keeping `order`
+  // in sync so the chat view and summary stay coherent if the user switches.
+  const setFormAnswer = (id, value) => {
+    setAnswers((prev) => ({ ...prev, [id]: value }))
+    setOrder((prev) => (prev.includes(id) ? prev : [...prev, id]))
+  }
+
+  const toggleFormMulti = (id, option) => {
+    const current = Array.isArray(answers[id]) ? answers[id] : []
+    const next = current.includes(option)
+      ? current.filter((o) => o !== option)
+      : [...current, option]
+    setFormAnswer(id, next)
+  }
+
+  const formComplete = questions.every((q) => {
+    const value = answers[q.id]
+    return Array.isArray(value)
+      ? value.length > 0
+      : String(value ?? '').trim().length > 0
+  })
+
+  const generateFromForm = () => {
+    const trimmed = {}
+    for (const [key, value] of Object.entries(answers)) {
+      trimmed[key] = typeof value === 'string' ? value.trim() : value
+    }
+    onComplete(trimmed)
   }
 
   // Grow the input with its content; past 120px it scrolls internally.
@@ -320,6 +362,9 @@ export default function OnboardingChat({ onComplete }) {
       <div className="onboarding-brand">
         <span className="onboarding-logo">BuildPath</span>
         <span className="onboarding-tagline">project → roadmap, in one conversation</span>
+        <button type="button" className="onboarding-mode" onClick={toggleFormMode}>
+          {formMode ? 'Chat mode' : 'Form mode'}
+        </button>
         <span className="onboarding-counter">
           {String(Math.min(order.length + 1, questions.length)).padStart(2, '0')} /{' '}
           {String(questions.length).padStart(2, '0')}
@@ -329,6 +374,81 @@ export default function OnboardingChat({ onComplete }) {
         <span style={{ '--fill': order.length / questions.length }} />
       </div>
 
+      {formMode && (
+        <div className="onboarding-form">
+          {questions.map((q) => (
+            <div className="form-field" key={q.id}>
+              <label className="form-q" htmlFor={`form-${q.id}`}>
+                {q.prompt}
+              </label>
+              {(q.type === 'text' || q.type === 'textarea') && (
+                <textarea
+                  id={`form-${q.id}`}
+                  className="chat-input chat-textarea"
+                  rows={q.type === 'textarea' ? 3 : 1}
+                  placeholder={q.placeholder || ''}
+                  value={typeof answers[q.id] === 'string' ? answers[q.id] : ''}
+                  onChange={(e) => {
+                    setFormAnswer(q.id, e.target.value)
+                    autoGrow(e.target)
+                  }}
+                />
+              )}
+              {q.type === 'select' && (
+                <div className="chat-options">
+                  {q.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={
+                        answers[q.id] === option
+                          ? 'option-chip option-chip-checked'
+                          : 'option-chip'
+                      }
+                      onClick={() => setFormAnswer(q.id, option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {q.type === 'multiselect' && (
+                <div className="chat-options">
+                  {q.options.map((option) => {
+                    const checked =
+                      Array.isArray(answers[q.id]) && answers[q.id].includes(option)
+                    return (
+                      <label
+                        key={option}
+                        className={
+                          checked ? 'option-chip option-chip-checked' : 'option-chip'
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleFormMulti(q.id, option)}
+                        />
+                        {option}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            className="btn-accent btn-generate"
+            disabled={!formComplete}
+            onClick={generateFromForm}
+          >
+            Generate Roadmap →
+          </button>
+        </div>
+      )}
+
+      {!formMode && (
       <div className="chat-scroll" ref={scrollRef}>
         <div className="chat-messages">
           <AgentMessage>
@@ -493,8 +613,9 @@ export default function OnboardingChat({ onComplete }) {
           )}
         </div>
       </div>
+      )}
 
-      {current && !typing && (
+      {!formMode && current && !typing && (
         <div className="chat-input-area">
           {(current.type === 'text' || current.type === 'textarea') && (
             <form className="chat-input-form" onSubmit={submitText}>
