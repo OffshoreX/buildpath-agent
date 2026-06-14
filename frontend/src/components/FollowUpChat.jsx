@@ -86,19 +86,23 @@ export default function FollowUpChat({ projectData, roadmap, onApplyEdits }) {
       }
 
       const next = [{ role: 'agent', content: payload.reply }]
+      // Only confirm an edit if it actually applied cleanly; a malformed edit
+      // is dropped (the reply still shows) so the roadmap is never corrupted.
       if (payload.edits) {
-        const highlighted = onApplyEdits?.(payload.edits)
-        const verb =
-          payload.edits.action === 'remove_phase'
-            ? 'Removed'
-            : payload.edits.action === 'add_phase'
-              ? 'Added'
-              : 'Updated'
-        const target =
-          payload.edits.action === 'remove_phase'
-            ? `Phase ${payload.edits.phase_number}`
-            : `Phase ${highlighted ?? payload.edits.phase_number}`
-        next.push({ role: 'agent', system: true, content: `✓ ${verb} ${target}` })
+        const result = onApplyEdits?.(payload.edits) || { ok: false }
+        if (result.ok) {
+          const verb =
+            payload.edits.action === 'remove_phase'
+              ? 'Removed'
+              : payload.edits.action === 'add_phase'
+                ? 'Added'
+                : 'Updated'
+          const target =
+            payload.edits.action === 'remove_phase'
+              ? `Phase ${payload.edits.phase_number}`
+              : `Phase ${result.highlight ?? payload.edits.phase_number}`
+          next.push({ role: 'agent', system: true, content: `✓ ${verb} ${target}` })
+        }
       }
       setMessages((prev) => [...prev, ...next])
     } catch {

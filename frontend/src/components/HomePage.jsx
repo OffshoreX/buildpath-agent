@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import sampleRoadmap from '../data/sampleRoadmap.js'
+import BlueprintHero from './BlueprintHero.jsx'
 
 const STORAGE_KEY = 'buildpath-roadmaps'
 
@@ -35,9 +36,9 @@ export function deleteSavedRoadmap(id) {
 }
 
 const heroRise = (delay) => ({
-  initial: { opacity: 0, y: 10, filter: 'blur(5px)' },
+  initial: { opacity: 0, y: 16, filter: 'blur(6px)' },
   animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
-  transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1], delay },
+  transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1], delay },
 })
 
 function formatDate(iso) {
@@ -105,10 +106,13 @@ function DeleteControl({ entryId, onDelete }) {
   )
 }
 
-// The most recent roadmap is the one you'd continue: it gets the full-width
-// panel. Older roadmaps form a quiet divided list below it.
-function ContinuePanel({ entry, onOpen, onDelete }) {
+// Every saved roadmap uses the same full card — title, type badge, date,
+// progress bar, and a Continue/View CTA — regardless of progress state.
+// Missing fields in older saved data default to 0 progress, never a fallback
+// layout.
+function RoadmapCard({ entry, onOpen, onDelete }) {
   const { total, completedCount, pct } = entryProgress(entry)
+  const done = total > 0 && completedCount >= total
   return (
     <button type="button" className="home-continue" onClick={() => onOpen(entry)}>
       <span className="home-continue-main">
@@ -138,27 +142,8 @@ function ContinuePanel({ entry, onOpen, onDelete }) {
             {completedCount}/{total} · {pct}%
           </span>
         </span>
-        <span className="home-continue-cta">Continue →</span>
+        <span className="home-continue-cta">{done ? 'View →' : 'Continue →'}</span>
       </span>
-    </button>
-  )
-}
-
-function RoadmapRow({ entry, onOpen, onDelete }) {
-  const { total, completedCount } = entryProgress(entry)
-  return (
-    <button type="button" className="home-row" onClick={() => onOpen(entry)}>
-      <span className="home-row-name">{entryName(entry)}</span>
-      <span className={`preset-badge preset-${String(entryPreset(entry)).toLowerCase()}`}>
-        {entryPreset(entry)}
-      </span>
-      <span className="home-date">
-        {formatDate(entry.roadmap?.generated_at || entry.saved_at)}
-      </span>
-      <span className="home-row-progress">
-        {completedCount}/{total} phases
-      </span>
-      <DeleteControl entryId={entry.id} onDelete={onDelete} />
     </button>
   )
 }
@@ -174,6 +159,7 @@ export default function HomePage({ onStart, onOpenRoadmap }) {
   return (
     <div className="home">
       <div className="home-hero">
+        <BlueprintHero />
         <svg
           className="home-litpath"
           viewBox="0 0 220 38"
@@ -220,21 +206,16 @@ export default function HomePage({ onStart, onOpenRoadmap }) {
             </button>
           </div>
         ) : (
-          <>
-            <ContinuePanel entry={saved[0]} onOpen={onOpenRoadmap} onDelete={handleDelete} />
-            {saved.length > 1 && (
-              <div className="home-list">
-                {saved.slice(1).map((entry) => (
-                  <RoadmapRow
-                    key={entry.id}
-                    entry={entry}
-                    onOpen={onOpenRoadmap}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="home-list">
+            {saved.map((entry) => (
+              <RoadmapCard
+                key={entry.id}
+                entry={entry}
+                onOpen={onOpenRoadmap}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
         )}
       </section>
     </div>

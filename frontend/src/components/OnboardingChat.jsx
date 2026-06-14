@@ -1,5 +1,127 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import InfoTip from './InfoTip.jsx'
+
+// Short explanations surfaced via an info button next to certain options.
+const RESOURCE_INFO = {
+  'Moderate budget': 'Roughly $50–500 for parts and tools.',
+  'Cloud credits': 'Free Azure / AWS / GCP credits for hosting or compute.',
+}
+
+// Inline "Other..." entry shared by every option group, so a custom value can
+// always be added (and shows up as an editable choice later).
+function OtherEntry({ onAdd }) {
+  const [open, setOpen] = useState(false)
+  const [val, setVal] = useState('')
+  const submit = () => {
+    const v = val.trim()
+    if (!v) return
+    onAdd(v)
+    setVal('')
+    setOpen(false)
+  }
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="option-chip option-chip-other"
+        onClick={() => setOpen(true)}
+      >
+        Other...
+      </button>
+    )
+  }
+  return (
+    <span className="option-other-input">
+      <input
+        className="chat-input"
+        type="text"
+        autoFocus
+        value={val}
+        placeholder="Add your own…"
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            submit()
+          }
+        }}
+      />
+      <button
+        type="button"
+        className="btn-electric btn-mini"
+        disabled={!val.trim()}
+        onClick={submit}
+      >
+        Add
+      </button>
+    </span>
+  )
+}
+
+// Multi-select group: preset options (with optional info tips), custom values
+// as removable chips, and an "Other..." entry. `value` is the array; `onChange`
+// receives the next array.
+function MultiSelectField({ value, options, onChange, infoMap }) {
+  const vals = Array.isArray(value) ? value : []
+  const customs = vals.filter((v) => !options.includes(v))
+  const toggle = (opt) =>
+    onChange(vals.includes(opt) ? vals.filter((x) => x !== opt) : [...vals, opt])
+  return (
+    <div className="chat-options">
+      {options.map((option) => {
+        const checked = vals.includes(option)
+        return (
+          <label
+            key={option}
+            className={checked ? 'option-chip option-chip-checked' : 'option-chip'}
+          >
+            <input type="checkbox" checked={checked} onChange={() => toggle(option)} />
+            {option}
+            {infoMap && infoMap[option] && (
+              <InfoTip text={infoMap[option]} label={`About ${option}`} />
+            )}
+          </label>
+        )
+      })}
+      {customs.map((v) => (
+        <span key={v} className="option-chip option-chip-checked option-chip-custom">
+          {v}
+          <button
+            type="button"
+            className="chip-remove"
+            aria-label={`Remove ${v}`}
+            onClick={() => onChange(vals.filter((x) => x !== v))}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <OtherEntry onAdd={(v) => (vals.includes(v) ? null : onChange([...vals, v]))} />
+    </div>
+  )
+}
+
+// Single-select group with an "Other..." custom entry. `value` is a string.
+function SelectField({ value, options, onChange }) {
+  const custom = value && !options.includes(value) ? value : null
+  return (
+    <div className="chat-options">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          className={value === option ? 'option-chip option-chip-checked' : 'option-chip'}
+          onClick={() => onChange(option)}
+        >
+          {option}
+        </button>
+      ))}
+      {custom && <button type="button" className="option-chip option-chip-checked">{custom}</button>}
+      <OtherEntry onAdd={onChange} />
+    </div>
+  )
+}
 
 const UNIVERSAL_QUESTIONS = [
   {
@@ -174,10 +296,10 @@ export default function OnboardingChat({ onComplete }) {
   const [otherInput, setOtherInput] = useState(false) // "Other..." picked on a select
   const [editingId, setEditingId] = useState(null) // summary field being edited inline
   const [editValue, setEditValue] = useState(null)
-  // Fast path for repeat users: every question on one form. Preference sticks.
-  const [formMode, setFormMode] = useState(
-    () => localStorage.getItem('buildpath-onboard-mode') === 'form'
-  )
+  // The conversational chat flow is the only onboarding surface. The form-mode
+  // pathway below is kept dormant (no toggle) so the agent never breaks
+  // character; flip this to re-enable it.
+  const formMode = false
   const [typing, setTyping] = useState(true)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
@@ -240,22 +362,8 @@ export default function OnboardingChat({ onComplete }) {
     answer(current.id, value)
   }
 
-  const toggleMulti = (option) => {
-    setMultiValue((prev) =>
-      prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
-    )
-  }
-
   const handleGenerate = () => {
     onComplete({ ...answers })
-  }
-
-  const toggleFormMode = () => {
-    setFormMode((prev) => {
-      const next = !prev
-      localStorage.setItem('buildpath-onboard-mode', next ? 'form' : 'chat')
-      return next
-    })
   }
 
   // Form mode writes straight into the shared answers state, keeping `order`
@@ -265,13 +373,6 @@ export default function OnboardingChat({ onComplete }) {
     setOrder((prev) => (prev.includes(id) ? prev : [...prev, id]))
   }
 
-  const toggleFormMulti = (id, option) => {
-    const current = Array.isArray(answers[id]) ? answers[id] : []
-    const next = current.includes(option)
-      ? current.filter((o) => o !== option)
-      : [...current, option]
-    setFormAnswer(id, next)
-  }
 
   const formComplete = questions.every((q) => {
     const value = answers[q.id]
@@ -322,12 +423,6 @@ export default function OnboardingChat({ onComplete }) {
     setEditValue(null)
   }
 
-  const toggleEditMulti = (option) => {
-    setEditValue((prev) =>
-      prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
-    )
-  }
-
   const editIsValid = (q) => {
     if (!q) return false
     if (q.type === 'multiselect') return Array.isArray(editValue) && editValue.length > 0
@@ -362,9 +457,6 @@ export default function OnboardingChat({ onComplete }) {
       <div className="onboarding-brand">
         <span className="onboarding-logo">BuildPath</span>
         <span className="onboarding-tagline">project → roadmap, in one conversation</span>
-        <button type="button" className="onboarding-mode" onClick={toggleFormMode}>
-          {formMode ? 'Chat mode' : 'Form mode'}
-        </button>
         <span className="onboarding-counter">
           {String(Math.min(order.length + 1, questions.length)).padStart(2, '0')} /{' '}
           {String(questions.length).padStart(2, '0')}
@@ -410,27 +502,12 @@ export default function OnboardingChat({ onComplete }) {
                 </div>
               )}
               {q.type === 'multiselect' && (
-                <div className="chat-options">
-                  {q.options.map((option) => {
-                    const checked =
-                      Array.isArray(answers[q.id]) && answers[q.id].includes(option)
-                    return (
-                      <label
-                        key={option}
-                        className={
-                          checked ? 'option-chip option-chip-checked' : 'option-chip'
-                        }
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleFormMulti(q.id, option)}
-                        />
-                        {option}
-                      </label>
-                    )
-                  })}
-                </div>
+                <MultiSelectField
+                  value={answers[q.id]}
+                  options={q.options}
+                  onChange={(next) => setFormAnswer(q.id, next)}
+                  infoMap={q.id === 'resources' ? RESOURCE_INFO : null}
+                />
               )}
             </div>
           ))}
@@ -514,46 +591,19 @@ export default function OnboardingChat({ onComplete }) {
                                   />
                                 )}
                                 {q.type === 'select' && (
-                                  <div className="chat-options">
-                                    {q.options.map((option) => (
-                                      <button
-                                        key={option}
-                                        type="button"
-                                        className={
-                                          editValue === option
-                                            ? 'option-chip option-chip-checked'
-                                            : 'option-chip'
-                                        }
-                                        onClick={() => setEditValue(option)}
-                                      >
-                                        {option}
-                                      </button>
-                                    ))}
-                                  </div>
+                                  <SelectField
+                                    value={editValue}
+                                    options={q.options}
+                                    onChange={setEditValue}
+                                  />
                                 )}
                                 {q.type === 'multiselect' && (
-                                  <div className="chat-options">
-                                    {q.options.map((option) => {
-                                      const checked = editValue.includes(option)
-                                      return (
-                                        <label
-                                          key={option}
-                                          className={
-                                            checked
-                                              ? 'option-chip option-chip-checked'
-                                              : 'option-chip'
-                                          }
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() => toggleEditMulti(option)}
-                                          />
-                                          {option}
-                                        </label>
-                                      )
-                                    })}
-                                  </div>
+                                  <MultiSelectField
+                                    value={editValue}
+                                    options={q.options}
+                                    onChange={setEditValue}
+                                    infoMap={q.id === 'resources' ? RESOURCE_INFO : null}
+                                  />
                                 )}
                                 <div className="summary-edit-actions">
                                   <button
@@ -698,24 +748,12 @@ export default function OnboardingChat({ onComplete }) {
 
           {current.type === 'multiselect' && (
             <div className="chat-multiselect">
-              <div className="chat-options">
-                {current.options.map((option) => {
-                  const checked = multiValue.includes(option)
-                  return (
-                    <label
-                      key={option}
-                      className={checked ? 'option-chip option-chip-checked' : 'option-chip'}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleMulti(option)}
-                      />
-                      {option}
-                    </label>
-                  )
-                })}
-              </div>
+              <MultiSelectField
+                value={multiValue}
+                options={current.options}
+                onChange={setMultiValue}
+                infoMap={current.id === 'resources' ? RESOURCE_INFO : null}
+              />
               <button
                 type="button"
                 className="btn-electric"

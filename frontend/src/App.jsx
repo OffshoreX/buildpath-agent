@@ -4,6 +4,7 @@ import HomePage, { saveRoadmap, updateSavedRoadmap } from './components/HomePage
 import OnboardingChat from './components/OnboardingChat.jsx'
 import RoadmapView from './components/RoadmapView.jsx'
 import ReasoningTrace from './components/ReasoningTrace.jsx'
+import FogIntro from './components/FogIntro.jsx'
 
 const STAGES = {
   HOME: 'home',
@@ -17,7 +18,7 @@ const stageMotion = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
-  transition: { duration: 0.4, ease: 'easeOut' },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
 }
 
 function ErrorState({ message, onRetry, onStartOver }) {
@@ -48,6 +49,18 @@ export default function App() {
   const [initialCompleted, setInitialCompleted] = useState([])
   const [error, setError] = useState('')
   const [trace, setTrace] = useState({ active: null, status: {}, reasoning: {} })
+  // Fog intro plays on every fresh page load (a reopened tab counts as fresh);
+  // it only persists within the current load, so internal navigation home
+  // doesn't replay it. Skipped under reduced motion.
+  const [introDone, setIntroDone] = useState(() => {
+    try {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    } catch {
+      return false
+    }
+  })
+
+  const dismissIntro = useCallback(() => setIntroDone(true), [])
 
   const generateRoadmap = useCallback(async (data) => {
     setProjectData(data)
@@ -179,7 +192,7 @@ export default function App() {
   }, [])
 
   const regeneratePhase = useCallback(
-    async (phase) => {
+    async (phase, feedback = '') => {
       const res = await fetch('/api/regenerate-phase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -195,6 +208,7 @@ export default function App() {
             })),
           },
           phase,
+          feedback,
         }),
       })
       const payload = await res.json().catch(() => null)
@@ -235,41 +249,42 @@ export default function App() {
     [roadmap, savedId]
   )
 
-  // Apply a structured edit from the follow-up chat. Phases are renumbered
-  // 1..n after add/remove so the timeline stays contiguous; dependencies and
-  // critical_path reference titles, so renumbering never breaks them. Returns
-  // the phase_number to highlight (or null for a removal).
+  // Apply a structured edit from the follow-up chat. Validates the shape before
+  // touching state — a malformed edit is rejected (returns {ok:false}) so bad
+  // model output can never corrupt the roadmap. Phases are renumbered 1..n
+  // after add/remove; dependencies and critical_path reference titles, so
+  // renumbering never breaks them. Returns {ok, highlight}.
   const applyChatEdits = useCallback(
     (edits) => {
-      if (!edits || !roadmap) return null
+      if (!edits || !roadmap) return { ok: false }
+      const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
+      const dataOk = isObj(edits.phase_data) && Boolean(edits.phase_data.title)
       const ordered = [...(roadmap.phases || [])].sort(
         (a, b) => (a.phase_number || 0) - (b.phase_number || 0)
       )
-      let nextPhases = ordered
+      let nextPhases = null
       let highlight = null
 
-      if (edits.action === 'update_phase' && edits.phase_data) {
+      if (edits.action === 'update_phase' && dataOk) {
+        if (!ordered.some((p) => p.phase_number === edits.phase_number)) return { ok: false }
         nextPhases = ordered.map((p) =>
           p.phase_number === edits.phase_number
             ? { ...edits.phase_data, phase_number: edits.phase_number }
             : p
         )
         highlight = edits.phase_number
-      } else if (edits.action === 'add_phase' && edits.phase_data) {
+      } else if (edits.action === 'add_phase' && dataOk) {
         const at = Number.isFinite(edits.phase_number)
           ? ordered.findIndex((p) => p.phase_number === edits.phase_number)
           : -1
         const insertAt = at === -1 ? ordered.length : at + 1
-        nextPhases = [
-          ...ordered.slice(0, insertAt),
-          edits.phase_data,
-          ...ordered.slice(insertAt),
-        ]
+        nextPhases = [...ordered.slice(0, insertAt), edits.phase_data, ...ordered.slice(insertAt)]
         highlight = insertAt + 1 // renumbered position below
       } else if (edits.action === 'remove_phase') {
+        if (!ordered.some((p) => p.phase_number === edits.phase_number)) return { ok: false }
         nextPhases = ordered.filter((p) => p.phase_number !== edits.phase_number)
       } else {
-        return null
+        return { ok: false }
       }
 
       nextPhases = nextPhases.map((p, i) => ({ ...p, phase_number: i + 1 }))
@@ -278,7 +293,7 @@ export default function App() {
       if (savedId) {
         updateSavedRoadmap(savedId, (entry) => ({ ...entry, roadmap: nextRoadmap }))
       }
-      return highlight
+      return { ok: true, highlight }
     },
     [roadmap, savedId]
   )
@@ -315,7 +330,7 @@ export default function App() {
       {/* All framer animations honor the OS reduced-motion setting. */}
       <MotionConfig reducedMotion="user">
       <AnimatePresence mode="wait">
-        {stage === STAGES.HOME && (
+        {stage === STAGES.HOME && introDone && (
           <motion.div key="home" className="stage" {...stageMotion}>
             <HomePage onStart={startOnboarding} onOpenRoadmap={openSavedRoadmap} />
           </motion.div>
@@ -354,6 +369,10 @@ export default function App() {
             />
           </motion.div>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!introDone && <FogIntro key="fog" onReveal={dismissIntro} />}
       </AnimatePresence>
       </MotionConfig>
     </div>

@@ -684,6 +684,99 @@ kbd {
   border-style: dashed;
 }
 
+/* A custom ("Other...") value, shown as a removable selected chip. */
+.option-chip-custom {
+  gap: 6px;
+}
+
+.chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chip-remove:hover {
+  color: var(--color-danger);
+}
+
+/* Inline text entry revealed by an "Other..." chip. */
+.option-other-input {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.option-other-input .chat-input {
+  width: 180px;
+  flex: none;
+}
+
+/* Info button + tooltip popover (shared: onboarding options, confidence). */
+.infotip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.infotip-btn {
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border-bright);
+  border-radius: 50%;
+  padding: 0;
+  cursor: help;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.infotip-btn:hover {
+  color: var(--color-electric);
+  border-color: var(--color-electric);
+}
+
+.infotip-pop {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: 220px;
+  background: var(--color-surface-raised);
+  border: var(--border-bright);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-card);
+}
+
 .chat-multiselect {
   display: flex;
   flex-direction: column;
@@ -1249,6 +1342,7 @@ kbd {
 .roadmap-page {
   position: relative;
   z-index: 0;
+  max-width: 1240px; /* wider than the shared 1040 so cards get more room */
 }
 
 .blueprint-bg {
@@ -1370,8 +1464,8 @@ kbd {
 .phase-slot {
   position: relative;
   z-index: 1; /* above the tool diagram in the opposite half */
-  width: calc(50% - 84px); /* leaves a center channel for the curve */
-  max-width: 520px;
+  width: calc(50% - 56px); /* smaller center channel -> wider cards */
+  max-width: 640px;
   min-width: 0;
 }
 
@@ -1582,11 +1676,7 @@ kbd {
   align-items: center;
   gap: 10px;
   width: 100%;
-  text-align: left;
-  background: transparent;
-  border: none;
   padding: 14px 20px;
-  cursor: pointer;
   color: inherit;
 }
 
@@ -1594,12 +1684,11 @@ kbd {
   font-family: var(--font-body); /* below the 20px Playfair floor */
   font-weight: 600;
   font-size: 16px;
+  margin-right: auto;
 }
 
-.phase-collapsed-row .chevron {
-  margin-left: auto;
-  color: var(--color-text-muted);
-  transform: rotate(-90deg);
+.phase-collapsed-row .phase-collapse-btn .chevron {
+  transform: rotate(-90deg); /* points right when collapsed */
 }
 
 .phase-card-collapsed:hover {
@@ -1634,6 +1723,17 @@ kbd {
   border: var(--border-bright);
   border-radius: var(--radius-sm);
   padding: 4px 7px;
+}
+
+/* The number badge doubles as a collapse/expand toggle. */
+.phase-number-toggle {
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.phase-number-toggle:hover {
+  border-color: var(--color-electric);
+  color: var(--color-text-primary);
 }
 
 .phase-title {
@@ -1794,19 +1894,26 @@ kbd {
   overflow: hidden;
 }
 
+/* Expanded info sections sit on a darker inset panel with breathing room, so
+   their content reads as separate from the card behind. */
 .checkpoint-list,
 .risk-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-8);
-  padding-top: var(--spacing-12);
+  gap: var(--spacing-12);
+  margin-top: var(--spacing-8);
+  background: var(--color-canvas);
+  border: var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-16);
 }
 
 .checkpoint {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--color-text-primary);
   cursor: pointer;
 }
@@ -1833,9 +1940,9 @@ kbd {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-8);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .risk-icon {
@@ -1848,11 +1955,15 @@ kbd {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-8);
-  padding-top: var(--spacing-12);
+  margin-top: var(--spacing-8);
+  background: var(--color-canvas);
+  border: var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-16);
 }
 
 .tool-chip {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-secondary);
   background: var(--color-surface-raised);
@@ -1869,6 +1980,9 @@ kbd {
 }
 
 .confidence-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-body);
   font-size: var(--text-caption);
   font-weight: 500;
@@ -1876,11 +1990,6 @@ kbd {
   text-transform: uppercase;
   color: var(--color-text-secondary);
   white-space: nowrap;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-bottom: 1px dotted var(--color-border-bright);
-  padding: 0;
 }
 
 .confidence-track {
@@ -2026,7 +2135,8 @@ kbd {
   gap: 8px;
 }
 
-.finding-card {
+/* Saved finding: a clean read-only card. */
+.finding-saved {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2060,18 +2170,59 @@ kbd {
   color: var(--color-danger);
 }
 
-.finding-title {
+.finding-saved-title {
   font-size: 14px;
   font-weight: 700;
+  color: var(--color-text-primary);
 }
 
-.finding-desc {
+.finding-saved-desc {
+  margin: 0;
+  font-size: var(--text-body-sm);
   color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
-.finding-source {
+.finding-saved-source {
   font-size: 12px;
+  color: var(--color-electric);
+  word-break: break-word;
+}
+
+/* Finding entry form: visible fields so it's clearly typeable. */
+.finding-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-12);
+}
+
+.finding-input {
+  width: 100%;
+  resize: none;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finding-input::placeholder {
   color: var(--color-text-secondary);
+}
+
+.finding-input:focus {
+  outline: none;
+  border-color: var(--color-electric);
+  box-shadow: 0 0 0 3px var(--color-electric-dim);
+}
+
+.finding-save {
+  align-self: flex-start;
 }
 
 /* Test: checklist rows with cycling status badges. */
@@ -2093,34 +2244,49 @@ kbd {
   padding: 6px 0;
 }
 
-.test-badge {
+/* Test status as a proper dropdown, color-coded to the chosen state. */
+.test-select {
   flex: none;
   font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  background: transparent;
-  border: 1px solid;
-  border-radius: 999px;
-  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius-sm);
+  padding: 4px 26px 4px 10px;
   cursor: pointer;
-  white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
+  /* warm chevron */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a89c8c' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 
-.test-badge-pending {
-  border-color: var(--color-border-bright);
+.test-select:focus-visible {
+  outline: 2px solid var(--color-electric);
+  outline-offset: 1px;
+}
+
+.test-select-pending {
   color: var(--color-text-secondary);
+  border-color: var(--color-border-bright);
 }
 
-.test-badge-pass {
-  border-color: rgba(122, 176, 106, 0.6);
+.test-select-pass {
   color: var(--color-success);
+  border-color: rgba(122, 176, 106, 0.6);
 }
 
-.test-badge-fail {
-  border-color: rgba(198, 93, 58, 0.6);
+.test-select-fail {
   color: var(--color-danger);
+  border-color: rgba(198, 93, 58, 0.6);
+}
+
+.test-select option {
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
 }
 
 /* Deploy: mini progress tracker with cycling dots on a 2px rail. */
@@ -2235,6 +2401,33 @@ kbd {
   font-size: var(--text-body-sm);
   font-weight: 500;
   color: rgba(122, 176, 106, 0.65);
+}
+
+/* "Completed ✓" doubles as a reopen control. */
+.completed-note-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.completed-note-btn:hover {
+  color: var(--color-success);
+  text-decoration: underline;
+}
+
+/* Inline "what should change?" box for targeted regeneration. */
+.regen-feedback {
+  margin-top: var(--spacing-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.regen-feedback-actions {
+  display: flex;
+  gap: var(--spacing-8);
 }
 
 .regen-error {
@@ -2358,12 +2551,92 @@ kbd {
 }
 
 .home-hero {
+  position: relative;
+  z-index: 0; /* stacking context so the blueprint can sit behind the content */
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   padding-bottom: var(--spacing-64);
   border-bottom: var(--divider);
+}
+
+/* Self-drawing blueprint accent behind the hero. */
+.blueprint-hero {
+  position: absolute;
+  z-index: -1;
+  top: -56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(280px, 52vw, 460px);
+  height: auto;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.bh-stroke {
+  fill: none;
+  stroke: rgba(212, 162, 76, 0.5);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0; /* fully drawn — the reduced-motion default */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bh-stroke {
+    stroke-dashoffset: 1; /* hidden, then drawn in */
+    animation: bh-draw 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .bh-d0 {
+    animation-delay: 0.1s;
+  }
+  .bh-d1 {
+    animation-delay: 0.5s;
+  }
+  .bh-d2 {
+    animation-delay: 0.9s;
+  }
+  .bh-d3 {
+    animation-delay: 1.2s;
+  }
+  .bh-d4 {
+    animation-delay: 1.5s;
+  }
+  .bh-dot {
+    animation-duration: 0.4s;
+  }
+  /* The swept arc draws last, then softly pulses once settled. */
+  .bh-arc {
+    animation:
+      bh-draw 1.7s cubic-bezier(0.4, 0, 0.2, 1) 1.5s forwards,
+      bh-arc-glow 2.8s ease-in-out 3.3s infinite;
+  }
+}
+
+@keyframes bh-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bh-arc-glow {
+  0%,
+  100% {
+    filter: none;
+  }
+  50% {
+    filter: drop-shadow(0 0 5px rgba(212, 162, 76, 0.55));
+  }
+}
+
+@media (max-width: 768px) {
+  .blueprint-hero {
+    width: 280px;
+    top: -28px;
+    opacity: 0.38;
+  }
 }
 
 /* The hero's lit path: a miniature roadmap that draws itself on arrival. */
@@ -2547,6 +2820,7 @@ kbd {
   margin-top: var(--spacing-8);
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-12);
 }
 
 .home-row {
@@ -2987,6 +3261,212 @@ kbd {
   }
 }
 
+/* ---- Fog intro (one-time pre-landing reveal) ------------------------------------ */
+
+.fog-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow: hidden;
+  background: var(--color-canvas);
+  cursor: crosshair;
+}
+
+/* Base blueprint grid, revealed where the mist clears. */
+.fog-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(212, 162, 76, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 162, 76, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Warm mist; a cursor-following radial mask punches a soft hole in it. */
+.fog-mist {
+  position: absolute;
+  inset: 0;
+  --mx: -500px;
+  --my: -500px;
+  background:
+    radial-gradient(60% 55% at 22% 28%, rgba(212, 162, 76, 0.07), transparent 70%),
+    radial-gradient(55% 60% at 80% 38%, rgba(237, 230, 219, 0.05), transparent 70%),
+    radial-gradient(70% 65% at 50% 82%, rgba(212, 162, 76, 0.06), transparent 72%),
+    rgba(26, 23, 20, 0.9);
+  -webkit-mask-image: radial-gradient(
+    circle 185px at var(--mx) var(--my),
+    transparent 0%,
+    transparent 32%,
+    #000 76%
+  );
+  mask-image: radial-gradient(
+    circle 185px at var(--mx) var(--my),
+    transparent 0%,
+    transparent 32%,
+    #000 76%
+  );
+}
+
+.fog-mist::after {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(38% 40% at 30% 35%, rgba(212, 162, 76, 0.05), transparent 60%),
+    radial-gradient(42% 44% at 72% 62%, rgba(237, 230, 219, 0.04), transparent 62%);
+  filter: blur(30px);
+}
+
+.fog-sparkle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-electric);
+  box-shadow: 0 0 8px var(--color-electric-glow);
+  opacity: 0.6;
+}
+
+.fog-sparkle-1 {
+  top: 30%;
+  left: 24%;
+}
+.fog-sparkle-2 {
+  top: 44%;
+  left: 78%;
+}
+.fog-sparkle-3 {
+  top: 74%;
+  left: 54%;
+}
+
+.fog-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 5vw, 52px);
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--color-text-primary);
+  text-shadow: 0 0 26px rgba(212, 162, 76, 0.35);
+  pointer-events: none;
+  opacity: 0;
+  animation: fog-text-in 1s ease-out 0.5s forwards;
+}
+
+.fog-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 52px);
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity 0.5s ease;
+}
+
+.fog-hint-gone {
+  opacity: 0;
+}
+
+.fog-skip {
+  position: absolute;
+  bottom: var(--spacing-24);
+  right: var(--spacing-24);
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.6s ease, color 0.2s ease;
+}
+
+.fog-skip-shown {
+  opacity: 0.6;
+}
+
+.fog-skip:hover {
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fog-mist::after {
+    animation: fog-drift 20s ease-in-out infinite alternate;
+  }
+  .fog-sparkle {
+    animation: fog-twinkle 3s ease-in-out infinite;
+  }
+  .fog-sparkle-2 {
+    animation-delay: 1s;
+  }
+  .fog-sparkle-3 {
+    animation-delay: 2s;
+  }
+  .fog-hint:not(.fog-hint-gone) {
+    animation: fog-hint-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fog-text {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+@keyframes fog-text-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -44%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes fog-drift {
+  from {
+    transform: translate(-3%, -2%) scale(1);
+  }
+  to {
+    transform: translate(3%, 2%) scale(1.08);
+  }
+}
+
+@keyframes fog-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes fog-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
 /* ---- Error state ------------------------------------------------------------------ */
 
 .error-screen {
@@ -3102,20 +3582,15 @@ kbd {
     animation: chip-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.95s forwards;
   }
 
-  .home-continue {
-    opacity: 0;
-    animation: chip-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 1.05s forwards;
-  }
-
-  .home-list .home-row {
+  .home-list .home-continue {
     opacity: 0;
     animation: chip-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  .home-list .home-row:nth-child(1) { animation-delay: 1.15s; }
-  .home-list .home-row:nth-child(2) { animation-delay: 1.21s; }
-  .home-list .home-row:nth-child(3) { animation-delay: 1.27s; }
-  .home-list .home-row:nth-child(n + 4) { animation-delay: 1.33s; }
+  .home-list .home-continue:nth-child(1) { animation-delay: 1.05s; }
+  .home-list .home-continue:nth-child(2) { animation-delay: 1.13s; }
+  .home-list .home-continue:nth-child(3) { animation-delay: 1.21s; }
+  .home-list .home-continue:nth-child(n + 4) { animation-delay: 1.29s; }
 
   /* When the last phase completes, the whole serpentine flares once. */
   .roadmap-all-complete .timeline-svg {

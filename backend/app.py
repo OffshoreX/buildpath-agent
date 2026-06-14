@@ -285,6 +285,11 @@ def build_planner_prompt(project_data):
             "each dependency in the description. Include one early 'quick-win'-worthy "
             "phase to build momentum.",
             "",
+            "First decide how many phases this specific project needs and WHY, then "
+            "make that the FIRST item in your reasoning array (e.g. 'Determining "
+            "optimal phase count: this project needs 5 phases because fabrication, "
+            "control, and tuning are genuinely separate efforts').",
+            "",
             REASONING_NOTE,
             "",
             "Return ONLY valid JSON:",
@@ -298,10 +303,18 @@ def build_researcher_prompt(project_data, phases):
     return "\n".join(
         [
             "You are the RESEARCHER agent. Enrich each phase of this skeleton with "
-            "SPECIFIC named tools, components, products, and frameworks — say "
-            "'Fusion 360' not 'CAD software', 'STM32G431' not 'a microcontroller'. "
-            "Ground recommendations in current web knowledge and cite real sources; "
-            "never fabricate URLs.",
+            "the tools and components needed. Ground recommendations in current web "
+            "knowledge and cite real sources; never fabricate URLs.",
+            "",
+            "For PHYSICAL parts and components, be SPECIFIC and name actual products "
+            "(say 'STM32G431' not 'a microcontroller'), since those need to be "
+            "purchased. ALSO include the basic connecting and supporting components "
+            "needed to actually assemble the project (e.g. breadboard, jumper wires, "
+            "connectors, fasteners, power supply) — not just the headline parts.",
+            "",
+            "For software tools, CAD programs, and similar where the user likely has "
+            "a preference, stay GENERIC (say 'a parametric CAD program', not 'Fusion "
+            "360' — naming a specific one could mismatch their setup).",
             "",
             _project_block(project_data),
             "",
@@ -321,12 +334,17 @@ def build_researcher_prompt(project_data, phases):
 def build_risk_prompt(project_data, phases):
     return "\n".join(
         [
-            "You are the RISK ANALYST agent. Pressure-test each phase. Add measurable "
-            "checkpoints ('Holds a 350g arm level at <60% rated current' not 'test "
-            "it'), specific failure-mode risks ('GB2208 torque may be marginal for a "
-            "620g camera at full extension' not 'might not work'), and tags from this "
-            "set only: critical-path, high-risk, quick-win, dependency, research, "
-            "build, test, deploy.",
+            "You are the RISK ANALYST agent. Pressure-test each phase and add "
+            "checkpoints, risks, and tags from this set only: critical-path, "
+            "high-risk, quick-win, dependency, research, build, test, deploy.",
+            "",
+            "Every checkpoint must be specific and measurable — tied to a concrete, "
+            "observable outcome ('Holds a 350g arm level at <60% rated current', not "
+            "'test it'). Every risk must be a realistic failure mode specific to THIS "
+            "project and phase ('GB2208 torque may be marginal for a 620g camera at "
+            "full extension', not 'might not work'). Do not include generic or filler "
+            "risks: if a phase has only one meaningful risk, include only that one "
+            "rather than padding the list.",
             "",
             "Enriched phases:",
             json.dumps(phases, ensure_ascii=False),
@@ -347,9 +365,15 @@ def build_critic_prompt(project_data, roadmap):
             "You are the CRITIC agent. Review the assembled roadmap holistically for "
             "coherence. Determine the minimal critical_path (phase titles that "
             "directly gate success, not just important ones), write a 2-3 sentence "
-            "summary, a concrete success_criteria, an early_validation describing a "
-            "specific first experiment to run, an estimated_duration for the whole "
+            "summary, a concrete success_criteria, an estimated_duration for the whole "
             "project, and assign an honest confidence (0.0-1.0) to each phase.",
+            "",
+            "The early_validation field is important: it must name ONE specific, "
+            "concrete experiment the builder can run first to de-risk the riskiest "
+            "assumption in this exact project (e.g. 'Drive one GB2208 motor open-loop "
+            "and confirm it holds a 350g arm level against a finger push before "
+            "committing to the frame'). Never a vague or generic suggestion — it "
+            "should reference real specifics from the roadmap.",
             "",
             _project_block(project_data),
             "",
@@ -456,8 +480,12 @@ def _pipeline_events(project_data):
             build_planner_prompt(project_data),
             PLANNER_AGENT_ID,
             apply_planner,
-            lambda: [f"Phase {n}: {phases[n]['title']}" for n in sorted(phases)]
-            or ["Sketching the phase sequence"],
+            lambda: (
+                [f"Determining optimal phase count: {len(phases)} phases for this project"]
+                + [f"Phase {n}: {phases[n]['title']}" for n in sorted(phases)]
+            )
+            if phases
+            else ["Sketching the phase sequence"],
         )
 
         if not phases:
@@ -615,21 +643,27 @@ def chat():
     if not isinstance(reply, str) or not reply.strip():
         return jsonify({"error": "The agent did not return a usable reply."}), 502
 
-    # Normalize edits: only pass through a well-formed, supported action.
+    # Normalize edits: only pass through a well-formed, supported action so a
+    # malformed model response can never corrupt the roadmap. Anything that
+    # doesn't validate is dropped (the conversational reply still goes through).
     edits = result.get("edits")
-    if isinstance(edits, dict) and edits.get("action") in (
-        "update_phase",
-        "add_phase",
-        "remove_phase",
-    ):
-        normalized = {"action": edits["action"], "phase_number": edits.get("phase_number")}
-        if edits["action"] in ("update_phase", "add_phase"):
-            normalized["phase_data"] = edits.get("phase_data")
-        edits = normalized
-    else:
-        edits = None
+    action = edits.get("action") if isinstance(edits, dict) else None
+    normalized = None
+    if action in ("update_phase", "add_phase", "remove_phase"):
+        try:
+            phase_number = int(edits.get("phase_number"))
+        except (TypeError, ValueError):
+            phase_number = None
+        phase_data = edits.get("phase_data")
+        data_ok = isinstance(phase_data, dict) and bool(phase_data.get("title"))
+        if action == "remove_phase" and phase_number is not None:
+            normalized = {"action": action, "phase_number": phase_number}
+        elif action == "update_phase" and phase_number is not None and data_ok:
+            normalized = {"action": action, "phase_number": phase_number, "phase_data": phase_data}
+        elif action == "add_phase" and data_ok:
+            normalized = {"action": action, "phase_number": phase_number, "phase_data": phase_data}
 
-    return jsonify({"reply": reply.strip(), "edits": edits})
+    return jsonify({"reply": reply.strip(), "edits": normalized})
 
 
 @app.post("/api/generate")

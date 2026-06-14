@@ -29,6 +29,11 @@ export default function RoadmapView({
   const [expandDirective, setExpandDirective] = useState({ action: null, nonce: 0 })
   const [geometry, setGeometry] = useState(null)
   const [flash, setFlash] = useState({ phase: null, nonce: 0 })
+  const [collapsedMap, setCollapsedMap] = useState({}) // phase index -> collapsed?
+
+  const reportCollapsed = useCallback((i, c) => {
+    setCollapsedMap((prev) => (prev[i] === c ? prev : { ...prev, [i]: c }))
+  }, [])
   const notesRefs = useRef({})
   const serpentineRef = useRef(null)
   const rowRefs = useRef([])
@@ -37,9 +42,11 @@ export default function RoadmapView({
   // that card's amber glow for ~1s, then clear it.
   const handleChatEdits = useCallback(
     (edits) => {
-      const target = onApplyChatEdits?.(edits)
-      if (target) setFlash((prev) => ({ phase: target, nonce: prev.nonce + 1 }))
-      return target
+      const result = onApplyChatEdits?.(edits) || { ok: false }
+      if (result.ok && result.highlight) {
+        setFlash((prev) => ({ phase: result.highlight, nonce: prev.nonce + 1 }))
+      }
+      return result
     },
     [onApplyChatEdits]
   )
@@ -88,23 +95,29 @@ export default function RoadmapView({
 
     const compute = () => {
       const width = container.clientWidth
-      const height = container.scrollHeight
-      if (!width || !height) return
+      if (!width) return
       const mobile = mq.matches
       const baseAmplitude = Math.min(64, width * 0.08)
 
       // First pass: vertical anchors and card edges.
       const anchors = []
+      let contentBottom = 0
       for (let i = 0; i < phases.length; i++) {
         const row = rowRefs.current[i]
         const slot = row?.firstElementChild
         if (!row || !slot) return
+        contentBottom = Math.max(contentBottom, row.offsetTop + row.offsetHeight)
         anchors.push({
           y: row.offsetTop + 44, // aligned with the card header
           edgeX:
             mobile || i % 2 === 1 ? slot.offsetLeft : slot.offsetLeft + slot.offsetWidth,
         })
       }
+      // Height comes from the rows themselves, not scrollHeight — the absolutely
+      // positioned SVG would otherwise keep its old (taller) height in the
+      // measurement and prevent the page from shrinking when sections collapse.
+      const height = contentBottom
+      if (!height) return
 
       // Second pass: horizontal swing, clamped so the curve never kinks.
       // Across short segments (collapsed rows) the swing shrinks to at most
@@ -137,6 +150,22 @@ export default function RoadmapView({
     (phaseNumber) => {
       setCompleted((prev) => {
         const next = new Set([...prev, phaseNumber])
+        if (savedId) {
+          updateSavedRoadmap(savedId, (entry) => ({ ...entry, completed: [...next] }))
+        }
+        return next
+      })
+    },
+    [savedId]
+  )
+
+  // Reopen a completed phase: drop it from the completed set and persist, so
+  // the timeline lighting returns it to active/upcoming.
+  const markIncomplete = useCallback(
+    (phaseNumber) => {
+      setCompleted((prev) => {
+        const next = new Set(prev)
+        next.delete(phaseNumber)
         if (savedId) {
           updateSavedRoadmap(savedId, (entry) => ({ ...entry, completed: [...next] }))
         }
@@ -474,16 +503,22 @@ export default function RoadmapView({
                 projectName={roadmap.project_name}
                 storageScope={savedId || roadmap.project_name}
                 onMarkComplete={() => markComplete(phase.phase_number)}
+                onUncomplete={() => markIncomplete(phase.phase_number)}
                 onRegenerate={onRegeneratePhase}
                 onRestore={onRestorePhase}
                 onNotesChange={handleNotesChange}
+                onCollapsedChange={(c) => reportCollapsed(i, c)}
                 expandDirective={expandDirective}
                 registerNotesRef={(el) => {
                   notesRefs.current[phase.phase_number] = el
                 }}
               />
             </div>
-            <BlueprintTool phaseNumber={phase.phase_number} />
+            {/* Hide the figure while the phase is collapsed (default-hidden for
+                upcoming until the card reports its real state). */}
+            {!(collapsedMap[i] ?? statuses[i] === 'upcoming') && (
+              <BlueprintTool phaseNumber={phase.phase_number} />
+            )}
           </div>
         ))}
       </div>

@@ -193,12 +193,14 @@ const ROTATIONS = [-6, 5, -3, 7, -8, 4] // "sketched on the page" tilt, by phase
 // returns to the caliper, phase 8 the microchip, and so on.
 export default function BlueprintTool({ phaseNumber }) {
   const n = Math.max(1, phaseNumber || 1)
-  const { Comp, name } = TOOLS[(n - 1) % TOOLS.length]
+  // The tool is chosen by phase but never named — the figure reads as a generic
+  // blueprint sheet marker, not a label for what's drawn.
+  const { Comp } = TOOLS[(n - 1) % TOOLS.length]
   const rot = ROTATIONS[(n - 1) % ROTATIONS.length]
   return (
     <div className="serp-tool" style={{ '--rot': `${rot}deg` }} aria-hidden="true">
       <Comp />
-      <span className="blueprint-fig">Figure {n}. {name}</span>
+      <span className="blueprint-fig">Fig. {n}</span>
     </div>
   )
 }

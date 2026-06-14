@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import InfoTip from './InfoTip.jsx'
 
 const SECTIONS = [
   { key: 'checkpoints', label: 'Checkpoints' },
@@ -95,7 +96,7 @@ const TAG_MEANINGS = {
 }
 
 const CONFIDENCE_HINT =
-  "The agent's certainty about this phase's scope, duration, and tooling — lower means expect iteration and re-planning"
+  "How certain the agent is about this phase's recommendations, based on available information."
 
 const PARTS_COLUMNS = [
   { key: 'part', label: 'Part Name' },
@@ -143,9 +144,11 @@ export default function PhaseCard({
   index,
   projectName,
   onMarkComplete,
+  onUncomplete,
   onRegenerate,
   onRestore,
   onNotesChange,
+  onCollapsedChange,
   expandDirective,
   registerNotesRef,
   storageScope,
@@ -166,7 +169,9 @@ export default function PhaseCard({
   const isTestPhase = phaseTags.includes('test')
   const isDeployPhase = phaseTags.includes('deploy')
   const [open, setOpen] = useState({ checkpoints: false, risks: false, tools: false })
-  const [peek, setPeek] = useState(false) // upcoming cards stay collapsed until peeked
+  // null = follow the status default (upcoming collapsed, others expanded);
+  // true/false = an explicit user/keyboard override.
+  const [openOverride, setOpenOverride] = useState(null)
   const [checked, setChecked] = useState(() => new Set())
   const [notes, setNotes] = useState(
     () => localStorage.getItem(notesKey) || localStorage.getItem(legacyNotesKey) || ''
@@ -174,6 +179,8 @@ export default function PhaseCard({
   const [savedVisible, setSavedVisible] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [regenError, setRegenError] = useState('')
+  const [showFeedback, setShowFeedback] = useState(false) // inline "what to change?" box
+  const [feedbackText, setFeedbackText] = useState('')
   const [undoPhase, setUndoPhase] = useState(null) // pre-regeneration snapshot
   const [regenFlash, setRegenFlash] = useState(false) // amber wash on fresh content
   const [hint, setHint] = useState(null) // tap-visible tooltip: { scope, text }
@@ -197,6 +204,7 @@ export default function PhaseCard({
     legacyKeyFor('findings'),
     () => []
   )
+  const [findingDraft, setFindingDraft] = useState(emptyFinding())
   const [tests, persistTests] = usePersistedRows(keyFor('tests'), legacyKeyFor('tests'), () => [
     emptyTest(),
     emptyTest(),
@@ -211,11 +219,12 @@ export default function PhaseCard({
   const savedTimer = useRef(null)
 
   // E / C keyboard shortcuts arrive as an incrementing directive from RoadmapView.
+  // Collapse/expand all applies to EVERY phase, including current and completed.
   useEffect(() => {
     if (!expandDirective?.action) return
     const value = expandDirective.action === 'expand'
     setOpen({ checkpoints: value, risks: value, tools: value })
-    setPeek(value)
+    setOpenOverride(value)
   }, [expandDirective])
 
   useEffect(() => {
@@ -252,14 +261,16 @@ export default function PhaseCard({
     })
   }
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = async (feedback) => {
     setRegenerating(true)
     setRegenError('')
     const previous = phase
     try {
-      await onRegenerate(phase)
+      await onRegenerate(phase, feedback)
       setUndoPhase(previous)
       setRegenFlash(true)
+      setShowFeedback(false)
+      setFeedbackText('')
     } catch (err) {
       setRegenError(err.message || 'Regeneration failed.')
     } finally {
@@ -281,12 +292,23 @@ export default function PhaseCard({
     persistParts([...parts, emptyPartRow()])
   }
 
-  const updateFinding = (index, key, value) => {
-    persistFindings(findings.map((f, i) => (i === index ? { ...f, [key]: value } : f)))
+  // A finding is composed in the draft form, then committed to a saved card.
+  const saveFinding = () => {
+    const d = findingDraft
+    if (!d.title.trim() && !d.description.trim()) return
+    persistFindings([
+      ...findings,
+      { title: d.title.trim(), description: d.description.trim(), source: d.source.trim() },
+    ])
+    setFindingDraft(emptyFinding())
   }
 
   const updateTest = (index, value) => {
     persistTests(tests.map((t, i) => (i === index ? { ...t, name: value } : t)))
+  }
+
+  const setTestStatus = (index, value) => {
+    persistTests(tests.map((t, i) => (i === index ? { ...t, status: value } : t)))
   }
 
   const cycleTestStatus = (index) => {
@@ -316,30 +338,51 @@ export default function PhaseCard({
   const sources = (phase.sources || []).filter((s) => s && s.url)
   const sectionItems = { checkpoints, risks, tools }
 
-  // Upcoming phases collapse to their essentials — number, title, duration —
-  // until they become current, are peeked, or E expands everything.
-  const collapsed = status === 'upcoming' && !peek
+  // Any phase can collapse to its essentials — number, title, duration. Default
+  // is collapsed for upcoming phases and expanded otherwise; an explicit toggle
+  // (number badge, chevron, or collapse-all) overrides that default.
+  const cardOpen = openOverride !== null ? openOverride : status !== 'upcoming'
+  const collapsed = !cardOpen
+  const toggleCard = () => setOpenOverride(!cardOpen)
+  const phaseNum = String(phase.phase_number).padStart(2, '0')
+
+  // Report collapse state up so the blueprint tool can hide while collapsed.
+  useEffect(() => {
+    onCollapsedChange?.(collapsed)
+  }, [collapsed, onCollapsedChange])
 
   if (collapsed) {
     return (
       <motion.article
-        className="phase-card phase-upcoming phase-card-collapsed"
+        className={`phase-card phase-${status} phase-card-collapsed`}
         initial={{ opacity: 0, x: 20 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, margin: '-100px' }}
         transition={{ duration: 0.4, ease: 'easeOut', delay: index < 4 ? index * 0.15 : 0.1 }}
       >
-        <button
-          type="button"
-          className="phase-collapsed-row"
-          onClick={() => setPeek(true)}
-          aria-expanded={false}
-        >
-          <span className="phase-number">{String(phase.phase_number).padStart(2, '0')}</span>
+        <div className="phase-collapsed-row">
+          {/* The number toggles; the title stays plain text so it's selectable. */}
+          <button
+            type="button"
+            className="phase-number phase-number-toggle"
+            onClick={toggleCard}
+            aria-expanded={false}
+            aria-label={`Expand phase ${phase.phase_number}`}
+          >
+            {phaseNum}
+          </button>
           <h3 className="phase-title">{phase.title}</h3>
           {phase.duration && <span className="duration-badge">{phase.duration}</span>}
-          <Chevron open={false} />
-        </button>
+          <button
+            type="button"
+            className="phase-collapse-btn"
+            onClick={toggleCard}
+            aria-expanded={false}
+            aria-label="Expand phase details"
+          >
+            <Chevron open={false} />
+          </button>
+        </div>
       </motion.article>
     )
   }
@@ -359,7 +402,16 @@ export default function PhaseCard({
       )}
 
       <div className="phase-card-header">
-        <span className="phase-number">{String(phase.phase_number).padStart(2, '0')}</span>
+        {/* Clicking the number collapses the card; the title stays selectable. */}
+        <button
+          type="button"
+          className="phase-number phase-number-toggle"
+          onClick={toggleCard}
+          aria-expanded
+          aria-label={`Collapse phase ${phase.phase_number}`}
+        >
+          {phaseNum}
+        </button>
         <h3 className="phase-title">{phase.title}</h3>
         {phase.duration && <span className="duration-badge">{phase.duration}</span>}
         {(phase.tags || []).map((tag) => {
@@ -377,17 +429,15 @@ export default function PhaseCard({
             </button>
           )
         })}
-        {status === 'upcoming' && (
-          <button
-            type="button"
-            className="phase-collapse-btn"
-            onClick={() => setPeek(false)}
-            aria-expanded
-            aria-label="Collapse phase details"
-          >
-            <Chevron open />
-          </button>
-        )}
+        <button
+          type="button"
+          className="phase-collapse-btn"
+          onClick={toggleCard}
+          aria-expanded
+          aria-label="Collapse phase details"
+        >
+          <Chevron open />
+        </button>
       </div>
 
       {hint?.scope === 'tags' && (
@@ -491,26 +541,15 @@ export default function PhaseCard({
       <div className="phase-divider" />
 
       <div className="confidence-row">
-        <button
-          type="button"
-          className="confidence-label"
-          title={CONFIDENCE_HINT}
-          aria-expanded={hint?.scope === 'confidence'}
-          onClick={() => toggleHint('confidence', CONFIDENCE_HINT)}
-        >
+        <span className="confidence-label">
           Agent confidence
-        </button>
+          <InfoTip text={CONFIDENCE_HINT} label="About agent confidence" />
+        </span>
         <div className="confidence-track">
           <div className="confidence-fill" style={{ '--fill': confidence / 100 }} />
         </div>
         <span className="confidence-value">{confidence}%</span>
       </div>
-
-      {hint?.scope === 'confidence' && (
-        <p className="phase-hint phase-hint-confidence" role="status">
-          {hint.text}
-        </p>
-      )}
 
       {isBuildPhase && (
         <div className="parts-wrap">
@@ -555,7 +594,7 @@ export default function PhaseCard({
           {findings.length > 0 && (
             <div className="findings-stack">
               {findings.map((finding, i) => (
-                <div className="finding-card" key={i}>
+                <div className="finding-saved" key={i}>
                   <button
                     type="button"
                     className="finding-remove"
@@ -564,38 +603,58 @@ export default function PhaseCard({
                   >
                     ✕
                   </button>
-                  <input
-                    type="text"
-                    className="inline-field finding-title"
-                    placeholder="Finding title"
-                    value={finding.title}
-                    onChange={(e) => updateFinding(i, 'title', e.target.value)}
-                  />
-                  <textarea
-                    className="inline-field finding-desc"
-                    rows={2}
-                    placeholder="What you learned"
-                    value={finding.description}
-                    onChange={(e) => updateFinding(i, 'description', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className="inline-field finding-source"
-                    placeholder="Link or reference"
-                    value={finding.source}
-                    onChange={(e) => updateFinding(i, 'source', e.target.value)}
-                  />
+                  {finding.title && <span className="finding-saved-title">{finding.title}</span>}
+                  {finding.description && (
+                    <p className="finding-saved-desc">{finding.description}</p>
+                  )}
+                  {finding.source &&
+                    (/^https?:\/\//i.test(finding.source) ? (
+                      <a
+                        className="finding-saved-source"
+                        href={finding.source}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {finding.source}
+                      </a>
+                    ) : (
+                      <span className="finding-saved-source">{finding.source}</span>
+                    ))}
                 </div>
               ))}
             </div>
           )}
-          <button
-            type="button"
-            className="btn-ghost btn-mini"
-            onClick={() => persistFindings([...findings, emptyFinding()])}
-          >
-            + Add Finding
-          </button>
+          <div className="finding-entry">
+            <input
+              type="text"
+              className="finding-input"
+              placeholder="Type a finding..."
+              value={findingDraft.title}
+              onChange={(e) => setFindingDraft((d) => ({ ...d, title: e.target.value }))}
+            />
+            <textarea
+              className="finding-input"
+              rows={2}
+              placeholder="What you learned (optional)"
+              value={findingDraft.description}
+              onChange={(e) => setFindingDraft((d) => ({ ...d, description: e.target.value }))}
+            />
+            <input
+              type="text"
+              className="finding-input"
+              placeholder="Link or reference (optional)"
+              value={findingDraft.source}
+              onChange={(e) => setFindingDraft((d) => ({ ...d, source: e.target.value }))}
+            />
+            <button
+              type="button"
+              className="btn-electric btn-mini finding-save"
+              disabled={!findingDraft.title.trim() && !findingDraft.description.trim()}
+              onClick={saveFinding}
+            >
+              Save Finding
+            </button>
+          </div>
         </div>
       )}
 
@@ -613,14 +672,16 @@ export default function PhaseCard({
                   value={test.name}
                   onChange={(e) => updateTest(i, e.target.value)}
                 />
-                <button
-                  type="button"
-                  className={`test-badge test-badge-${test.status}`}
-                  aria-label={`Status: ${test.status}. Click to change.`}
-                  onClick={() => cycleTestStatus(i)}
+                <select
+                  className={`test-select test-select-${test.status}`}
+                  aria-label={`Status for test ${i + 1}`}
+                  value={test.status}
+                  onChange={(e) => setTestStatus(i, e.target.value)}
                 >
-                  {TEST_STATUS_LABEL[test.status] || 'Pending'}
-                </button>
+                  <option value="pending">Pending</option>
+                  <option value="pass">Pass</option>
+                  <option value="fail">Fail</option>
+                </select>
               </div>
             ))}
           </div>
@@ -698,16 +759,59 @@ export default function PhaseCard({
             Mark Complete
           </button>
         )}
-        {status === 'completed' && <span className="completed-note">Completed ✓</span>}
+        {status === 'completed' && (
+          <button
+            type="button"
+            className="completed-note completed-note-btn"
+            onClick={onUncomplete}
+            title="Reopen this phase"
+          >
+            Completed ✓
+          </button>
+        )}
         <button
           type="button"
           className="btn-ghost btn-regen"
-          onClick={handleRegenerate}
+          onClick={() => setShowFeedback((v) => !v)}
           disabled={regenerating}
+          aria-expanded={showFeedback}
         >
           {regenerating ? 'Regenerating…' : 'Regenerate Phase'}
         </button>
       </div>
+
+      {showFeedback && (
+        <div className="regen-feedback">
+          <textarea
+            className="finding-input"
+            rows={2}
+            autoFocus
+            placeholder="What should change about this phase?"
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+          />
+          <div className="regen-feedback-actions">
+            <button
+              type="button"
+              className="btn-electric btn-mini"
+              disabled={regenerating}
+              onClick={() => handleRegenerate(feedbackText.trim())}
+            >
+              {regenerating ? 'Regenerating…' : 'Regenerate'}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-mini"
+              onClick={() => {
+                setShowFeedback(false)
+                setFeedbackText('')
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {regenError && <p className="regen-error">{regenError}</p>}
 
