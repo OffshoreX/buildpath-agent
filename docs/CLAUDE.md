@@ -20,7 +20,7 @@
 
 ## Design Context
 
-Read `PRODUCT.md` (strategy) and `DESIGN.md` (visual system) before any UI work. Tokens live in `frontend/src/index.css`; component snippets and canonical OKLCH values in `.impeccable/design.json`.
+Read `PRODUCT.md` (strategy) and `DESIGN.md` (visual system) before any UI work. Tokens live in `frontend/src/index.css`.
 
 - **Register:** product — design serves the task; demo-speed comprehension first.
 - **North Star:** "The Workshop Blueprint" — a maker's drafting table at golden hour; warm dark surfaces, exactly one illuminated element per screen (the amber timeline through the current phase).
