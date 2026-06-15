@@ -223,4 +223,4 @@ frontend/dist/
 
 # Local agent tooling (skills, session state) — not product code
 .claude/
-.impeccable/live/sessions/
+.impeccable/
