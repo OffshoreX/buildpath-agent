@@ -168,6 +168,12 @@ git clone <repo-url> && cd buildpath-agent
 
 ### 2. Configure `backend/.env`
 
+```bash
+cp backend/.env.example backend/.env
+```
+
+Then fill in your own values:
+
 ```env
 AZURE_PROJECT_ENDPOINT=https://<your-resource>.services.ai.azure.com
 AZURE_PROJECT_NAME=<your-project-name>
