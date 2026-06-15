@@ -2,10 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import InfoTip from './InfoTip.jsx'
 
-// Short explanations surfaced via an info button next to certain options.
+// Short explanations surfaced via an info button next to each resource option.
 const RESOURCE_INFO = {
+  'Limited budget': 'Under ~$50 — scavenged, free, or minimal-cost parts.',
   'Moderate budget': 'Roughly $50–500 for parts and tools.',
+  'Well-funded': '$500+ available for parts, tools, and paid services.',
+  'Lab/workshop access': 'A makerspace, lab, or shop with shared machines and tools.',
   'Cloud credits': 'Free Azure / AWS / GCP credits for hosting or compute.',
+  'Specialized equipment': 'Specific gear on hand — e.g. a 3D printer, CNC, oscilloscope, or soldering station.',
 }
 
 // Inline "Other..." entry shared by every option group, so a custom value can
